@@ -15,16 +15,20 @@ def listen_for_offers():
         while True:
             print("server successfully bind to UDP")
             data, addr = udp_socket.recvfrom(BUFFER_SIZE)  # Wait for a broadcast message
-            print("the data recived is: ", data)
+            #print("the data recived is: ", data)
             if data:
                 # Ensure the data begins with the "magic cookie" and message type for a valid offer
                 magic_cookie = data[:4]
                 message_type = data[4:5]
                 if magic_cookie == b'\xab\xcd\xdc\xba' and message_type == b'\x02':
+                    # Extract the name of the server
+                    server_name_raw = data[5:37]  # Extract the server name part
+                    # Decode the server name, remove trailing null bytes, and decode as UTF-8
+                    server_name = server_name_raw.decode('utf-8').rstrip('\x00')
                     # Extract TCP port from the message; adjust slice indices as per your protocol
                     tcp_port = int.from_bytes(data[5:7], byteorder='big')
                     print(tcp_port, "this is the tcp port")
-                    print(f"Received offer from server \"Mystic\" at address {addr[0]}, attempting to connect...")
+                    print(f"Received offer from server \"{server_name}\" at address {addr[0]}, attempting to connect...")
                     return addr[0], tcp_port  # Return server IP and TCP port for further processing
 
 
