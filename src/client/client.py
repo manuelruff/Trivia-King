@@ -15,6 +15,7 @@ def listen_for_offers():
         while True:
             print("server successfully bind to UDP")
             data, addr = udp_socket.recvfrom(BUFFER_SIZE)  # Wait for a broadcast message
+            print("the data recived is: ", data)
             if data:
                 # Ensure the data begins with the "magic cookie" and message type for a valid offer
                 magic_cookie = data[:4]
