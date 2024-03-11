@@ -26,7 +26,7 @@ def listen_for_offers():
                     # Decode the server name, remove trailing null bytes, and decode as UTF-8
                     server_name = server_name_raw.decode('utf-8').rstrip('\x00')
                     # Extract TCP port from the message; adjust slice indices as per your protocol
-                    tcp_port = int.from_bytes(data[5:7], byteorder='big')
+                    tcp_port = int.from_bytes(data[-2:], byteorder='big')
                     print(tcp_port, "this is the tcp port")
                     print(f"Received offer from server \"{server_name}\" at address {addr[0]}, attempting to connect...")
                     return addr[0], tcp_port  # Return server IP and TCP port for further processing
