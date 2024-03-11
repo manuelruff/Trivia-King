@@ -119,12 +119,12 @@ def start_tcp_server(server_socket, ip_address, port, game_ready_event):
     # If no new clients joined during the last 10 seconds, start the game
     game_ready_event.set()
 
-def send_udp_broadcast(message):
+def send_udp_broadcast(tcp_port):
     """
-    Function to send UDP broadcast.
+    Function to send UDP broadcast with custom message format.
 
     Args:
-        message (bytes): The message to send.
+        tcp_port (int): The port on the server that the client should connect to over TCP.
     """
     # Create a UDP socket
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -132,10 +132,19 @@ def send_udp_broadcast(message):
     # Enable broadcast
     udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
+    # Define the message format
+    magic_cookie = b'\xab\xcd\xdc\xba'
+    message_type = b'\x02'
+    server_name_bytes = "KaKi".encode().ljust(32, b'\x00')  # Change "MyServer" to your desired server name
+    server_port_bytes = tcp_port.to_bytes(2, byteorder='big')
+
+    # Construct the message
+    message = magic_cookie + message_type + server_name_bytes + server_port_bytes
+
     while True:
         # Send the message via UDP broadcast
         udp_socket.sendto(message, ('255.255.255.255', 13117))
-        print(f"UDP broadcast sent: {message}")
+        print(f"UDP broadcast sent with server name: {server_name_bytes.decode().strip(chr(0))}, TCP port: {tcp_port}")
 
         # Wait for one second before sending the next broadcast
         time.sleep(1)
@@ -162,7 +171,6 @@ if __name__ == "__main__":
     if ip_address is None:
         print("Failed to retrieve local IP address. Please check your network connection.")
         exit()
-
     # Find a free port for TCP server
     tcp_port = find_free_port(20000)
 
@@ -177,7 +185,7 @@ if __name__ == "__main__":
     tcp_thread.start()
 
     # Start sending UDP broadcasts about the TCP server
-    udp_thread = threading.Thread(target=send_udp_broadcast, args=(f"{ip_address}:{tcp_port}".encode(),))
+    udp_thread = threading.Thread(target=send_udp_broadcast, args=(tcp_port,))
     udp_thread.start()
 
     # Join the UDP thread once the game is started
