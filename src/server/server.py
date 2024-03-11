@@ -134,7 +134,7 @@ def send_udp_broadcast(message):
 
     while True:
         # Send the message via UDP broadcast
-        udp_socket.sendto(message, ('<broadcast>', tcp_port))
+        udp_socket.sendto(message, ('255.255.255.255', 13117))
         print(f"UDP broadcast sent: {message}")
 
         # Wait for one second before sending the next broadcast
