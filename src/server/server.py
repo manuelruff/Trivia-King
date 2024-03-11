@@ -3,6 +3,41 @@ import threading
 import time
 
 
+
+clients = []
+questions = {
+    "Mount Everest is the tallest mountain in the world.": True,
+    "The Great Wall of China is visible from space.": False,
+    "The Pacific Ocean is the largest ocean on Earth.": True,
+    "Auroras occur only at the North Pole.": False,
+    "The Nile River is the longest river in the world.": True,
+    "Sharks are mammals.": False,
+    "The human body has four lungs.": False,
+    "The capital of France is Paris.": True,
+    "Oxygen is the most abundant element in the Earth's atmosphere.": False,
+    "Diamonds are made of carbon.": True,
+    "Mount Kilimanjaro is located in South America.": False,
+    "The Statue of Liberty was a gift from France to the United States.": True,
+    "The moon orbits the Earth once a month.": True,
+    "A decagon has ten sides.": True,
+    "The chemical symbol for water is H2O2.": False,
+    "The human body has five senses.": True,
+    "Mars is the largest planet in the solar system.": False,
+    "The capital of Japan is Kyoto.": False,
+    "The Earth is approximately 4.5 billion years old.": True,
+    "Whales are fish.": False,
+    "Photosynthesis is the process by which plants convert sunlight into energy.": True,
+    "The Amazon Rainforest is located in Africa.": False,
+    "Penguins can fly.": False,
+    "The speed of light is approximately 300,000 kilometers per second.": True,
+    "The Pythagorean theorem states that the square of the hypotenuse of a right triangle is equal to the sum of the squares of the other two sides.": True,
+    "Saltwater freezes at a lower temperature than freshwater.": False,
+    "The capital of Australia is Sydney.": False,
+    "The human skeleton is made up of 206 bones.": True,
+    "The Earth revolves around the sun.": True,
+    "The chemical symbol for gold is Ag.": False
+}
+
 def find_free_port(start_port, max_attempts=100):
     """
     Function to find a free port within a specified range of attempts.
@@ -29,16 +64,16 @@ def find_free_port(start_port, max_attempts=100):
     # If no free port is found within the specified range of attempts, raise an OSError
     raise OSError("Unable to find a free port")
 
-
 def handle_tcp_connection(client_socket, game_ready_event):
     """
     Function to handle TCP connections.
-
     Args:
         client_socket (socket.socket): The socket object representing the TCP connection.
         game_ready_event (threading.Event): Event indicating if the game is ready to start.
     """
     print(f"TCP connection established with {client_socket.getpeername()}")
+    # Add the client information to the list of connected clients
+    clients.append((client_socket, client_socket.getpeername()))
 
     # Wait for the game to be ready
     game_ready_event.wait()
@@ -48,7 +83,6 @@ def handle_tcp_connection(client_socket, game_ready_event):
 
     # Close the connection
     client_socket.close()
-
 
 def start_tcp_server(server_socket, ip_address, port, game_ready_event):
     """
