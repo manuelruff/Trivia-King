@@ -108,11 +108,11 @@ def start_tcp_server(server_socket, ip_address, port, game_ready_event):
     # Accept and handle incoming connections for up to 10 seconds
     while time.time() - start_time <= 10:
         # Accept incoming connections
+        print("Waiting for incoming connections...")
         client_socket, client_address = server_socket.accept()
-
+        print(f"New connection from {client_address}")
         # Start a new thread to handle the connection
         threading.Thread(target=handle_tcp_connection, args=(client_socket, game_ready_event)).start()
-
         # Update the start time to account for the new client connection
         start_time = time.time()
 
@@ -144,7 +144,7 @@ def send_udp_broadcast(tcp_port):
     while True:
         # Send the message via UDP broadcast
         udp_socket.sendto(message, ('255.255.255.255', 13117))
-        print(f"UDP broadcast sent with server name: {server_name_bytes.decode().strip(chr(0))}, TCP port: {tcp_port}")
+        # print(f"UDP broadcast sent with server name: {server_name_bytes.decode().strip(chr(0))}, TCP port: {tcp_port}")
 
         # Wait for one second before sending the next broadcast
         time.sleep(1)
