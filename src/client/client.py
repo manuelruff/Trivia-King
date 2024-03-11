@@ -23,6 +23,7 @@ def listen_for_offers():
                 if magic_cookie == b'\xab\xcd\xdc\xba' and message_type == b'\x02':
                     # Extract TCP port from the message; adjust slice indices as per your protocol
                     tcp_port = int.from_bytes(data[5:7], byteorder='big')
+                    print(tcp_port, "this is the tcp port")
                     print(f"Received offer from server \"Mystic\" at address {addr[0]}, attempting to connect...")
                     return addr[0], tcp_port  # Return server IP and TCP port for further processing
 
