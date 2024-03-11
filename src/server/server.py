@@ -80,7 +80,8 @@ def handle_tcp_connection(client_socket, game_ready_event,server_socket):
     print(f"TCP connection established with {client_socket.getpeername()}")
     # Add the client information to the list of connected clients
     clients.append((client_socket, client_socket.getpeername()))
-    client_names[client_socket.getpeername()]=client_socket.recvfrom(1024)
+    client_names[client_socket.getpeername()]=client_socket.recvfrom(1024)[0].decode()
+    print(f"Client {client_names[client_socket.getpeername()]} has joined the game")
     # Wait for the game to be ready
     game_ready_event.wait()
     # Cancel the timeout after the loop
@@ -90,8 +91,6 @@ def handle_tcp_connection(client_socket, game_ready_event,server_socket):
     start_game(server_socket)
     # Close the connection
     client_socket.close()
-
-
 
 def create_random_question():
     """
@@ -104,9 +103,6 @@ def create_random_question():
     rand_question_id = random.choice(all_questions)  # Choose a random question ID
     chosen_question = questions[rand_question_id]  # Get the chosen question
     return (chosen_question, questions[rand_question_id])  # Return the chosen question and its answer
-
-
-
 def check_correct(clint_ans, ans):
     if ans=="T":
         if clint_ans=='t' or '1' or 'y':
@@ -133,15 +129,15 @@ def start_game(server_socket):
     message=f"Welcome to the {server_name} server, where we are answering trivia questions"
     count =1
     for client in clients:
-        message+= f"Player {count}: {client_names[client.getpeername()]} \n"
+        message+= f"Player {count}: {client_names[client[1]]} \n"
         count+=1
-    server_socket.send(message)
+    server_socket.send(message.encode())
     print(message)
 #     now we need to start sending questions
     while True:
         question,answer = create_random_question()
         # send the question to everyone
-        server_socket.send(question)
+        server_socket.send(question.encode())
         for client in clients:
             # we will empty the queue
             answer_queue.empty()
