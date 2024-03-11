@@ -38,9 +38,18 @@ def connect_to_server(server_ip, tcp_port):
         try:
             tcp_socket.connect((server_ip, tcp_port))
             print("Connected successfully to the server.")
+            login(tcp_socket)
+            print("successfull login name")
             handle_server_messages(tcp_socket)
         except socket.error as e:
             print(f"Error connecting to the server: {e}")
+
+
+
+# login with name
+def login(conn):
+    username = input("Please enter username: \n")
+    conn.send(username.encode())
 
 def handle_server_messages(tcp_socket):
     while True:
