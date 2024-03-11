@@ -135,7 +135,7 @@ def send_udp_broadcast(tcp_port):
     # Define the message format
     magic_cookie = b'\xab\xcd\xdc\xba'
     message_type = b'\x02'
-    server_name_bytes = "KaKi".encode().ljust(32, b'\x00')  # Change "MyServer" to your desired server name
+    server_name_bytes = "KaKi".encode('utf-8').ljust(32, b'\x00')  # Change "KaKi" to your desired server name
     server_port_bytes = tcp_port.to_bytes(2, byteorder='big')
 
     # Construct the message
