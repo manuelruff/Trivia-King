@@ -140,10 +140,28 @@ def send_udp_broadcast(port, message):
         # Wait for one second before sending the next broadcast
         time.sleep(1)
 
+def get_local_ip():
+    """
+    Get the local IP address of the computer.
+    """
+    # Create a temporary socket
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        try:
+            # Connect to a remote server (Google's public DNS server)
+            s.connect(("8.8.8.8", 80))
+            # Get the local IP address
+            local_ip = s.getsockname()[0]
+        except Exception as e:
+            print(f"Error getting local IP address: {e}")
+            local_ip = None
+    return local_ip
 
 if __name__ == "__main__":
     # Configuration
-    ip_address = "172.1.0.4"  # IP address to listen on
+    ip_address = get_local_ip()  # IP address to listen on
+    if ip_address is None:
+        print("Failed to retrieve local IP address. Please check your network connection.")
+        exit()
 
     # Find a free port for TCP server
     tcp_port = find_free_port(20000)
@@ -159,7 +177,7 @@ if __name__ == "__main__":
     tcp_thread.start()
 
     # Start sending UDP broadcasts about the TCP server
-    udp_thread = threading.Thread(target=send_udp_broadcast, args=(ip_address, tcp_port, b"TCP server info"))
+    udp_thread = threading.Thread(target=send_udp_broadcast, args=(tcp_port,f"{ip_address}:{tcp_port}".encode()))
     udp_thread.start()
 
     # Join the UDP thread once the game is started
