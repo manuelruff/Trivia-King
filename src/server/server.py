@@ -78,7 +78,6 @@ def handle_tcp_connection(client_socket, game_ready_event):
     clients.append((client_socket, client_socket.getpeername()))
     # Wait for the game to be ready
     game_ready_event.wait()
-
     # Your game logic goes here
     # Once the game is ready, you can proceed with the game
 
@@ -101,21 +100,23 @@ def start_tcp_server(server_socket, ip_address, port, game_ready_event):
     # Listen for incoming connections
     server_socket.listen(5)
     print(f"TCP Server started, listening on IP address {ip_address}, port {port}")
-
-    # Track the time when the server starts
-    start_time = time.time()
+    # Set the timeout for accepting connections
+    server_socket.settimeout(10)
 
     # Accept and handle incoming connections for up to 10 seconds
-    while time.time() - start_time <= 10:
+    while True:
         # Accept incoming connections
-        print("Waiting for incoming connections...")
-        client_socket, client_address = server_socket.accept()
-        print(f"New connection from {client_address}")
-        # Start a new thread to handle the connection
-        threading.Thread(target=handle_tcp_connection, args=(client_socket, game_ready_event)).start()
-        # Update the start time to account for the new client connection
-        start_time = time.time()
+        try:
+            client_socket, client_address = server_socket.accept()
+            print(f"New connection from {client_address}")
+            # Start a new thread to handle the connection
+            threading.Thread(target=handle_tcp_connection, args=(client_socket, game_ready_event)).start()
 
+        except socket.timeout:
+            break;
+    # Cancel the timeout after the loop
+    server_socket.settimeout(None)
+    print("Game ready!")
     # If no new clients joined during the last 10 seconds, start the game
     game_ready_event.set()
 

@@ -36,6 +36,7 @@ def listen_for_offers():
 def connect_to_server(server_ip, tcp_port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as tcp_socket:
         try:
+            print(f"Connecting to the server {server_ip} on port {tcp_port}")
             tcp_socket.connect((server_ip, tcp_port))
             print("Connected successfully to the server.")
             login(tcp_socket)
