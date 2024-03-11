@@ -3,7 +3,8 @@ import threading
 import time
 
 
-
+ip_address=None
+tcp_port=20000
 clients = []
 questions = {
     "Mount Everest is the tallest mountain in the world.": True,
@@ -71,10 +72,10 @@ def handle_tcp_connection(client_socket, game_ready_event):
         client_socket (socket.socket): The socket object representing the TCP connection.
         game_ready_event (threading.Event): Event indicating if the game is ready to start.
     """
+    print("Server started, listening on IP address {}")
     print(f"TCP connection established with {client_socket.getpeername()}")
     # Add the client information to the list of connected clients
     clients.append((client_socket, client_socket.getpeername()))
-
     # Wait for the game to be ready
     game_ready_event.wait()
 
@@ -118,12 +119,11 @@ def start_tcp_server(server_socket, ip_address, port, game_ready_event):
     # If no new clients joined during the last 10 seconds, start the game
     game_ready_event.set()
 
-def send_udp_broadcast(port, message):
+def send_udp_broadcast(message):
     """
     Function to send UDP broadcast.
 
     Args:
-        port (int): The port to send the broadcast to.
         message (bytes): The message to send.
     """
     # Create a UDP socket
@@ -134,7 +134,7 @@ def send_udp_broadcast(port, message):
 
     while True:
         # Send the message via UDP broadcast
-        udp_socket.sendto(message, ('<broadcast>', port))
+        udp_socket.sendto(message, ('<broadcast>', tcp_port))
         print(f"UDP broadcast sent: {message}")
 
         # Wait for one second before sending the next broadcast
@@ -177,7 +177,7 @@ if __name__ == "__main__":
     tcp_thread.start()
 
     # Start sending UDP broadcasts about the TCP server
-    udp_thread = threading.Thread(target=send_udp_broadcast, args=(tcp_port,f"{ip_address}:{tcp_port}".encode()))
+    udp_thread = threading.Thread(target=send_udp_broadcast, args=(f"{ip_address}:{tcp_port}".encode(),))
     udp_thread.start()
 
     # Join the UDP thread once the game is started
