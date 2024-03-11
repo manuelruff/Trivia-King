@@ -1,11 +1,13 @@
 import socket
 import threading
 import time
-
+import random
+import queue
 
 ip_address=None
 tcp_port=20000
 clients = []
+client_names={}
 questions = {
     "Mount Everest is the tallest mountain in the world.": True,
     "The Great Wall of China is visible from space.": False,
@@ -38,6 +40,8 @@ questions = {
     "The Earth revolves around the sun.": True,
     "The chemical symbol for gold is Ag.": False
 }
+server_name= "KaKi"
+answer_queue = queue.Queue()
 
 def find_free_port(start_port, max_attempts=100):
     """
@@ -65,7 +69,7 @@ def find_free_port(start_port, max_attempts=100):
     # If no free port is found within the specified range of attempts, raise an OSError
     raise OSError("Unable to find a free port")
 
-def handle_tcp_connection(client_socket, game_ready_event):
+def handle_tcp_connection(client_socket, game_ready_event,server_socket):
     """
     Function to handle TCP connections.
     Args:
@@ -76,13 +80,74 @@ def handle_tcp_connection(client_socket, game_ready_event):
     print(f"TCP connection established with {client_socket.getpeername()}")
     # Add the client information to the list of connected clients
     clients.append((client_socket, client_socket.getpeername()))
+    client_names[client_socket.getpeername()]=client_socket.recvfrom(1024)
     # Wait for the game to be ready
     game_ready_event.wait()
+    # Cancel the timeout after the loop
+    server_socket.settimeout(None)
     # Your game logic goes here
     # Once the game is ready, you can proceed with the game
-
+    start_game(server_socket)
     # Close the connection
     client_socket.close()
+
+
+
+def create_random_question():
+    """
+    Function to randomly select a question from the available questions.
+    Returns:
+        tuple: A tuple containing the randomly selected question and its answer.
+    """
+    global questions  # Access the global variable containing the questions
+    all_questions = list(questions.keys())  # Get a list of all question IDs
+    rand_question_id = random.choice(all_questions)  # Choose a random question ID
+    chosen_question = questions[rand_question_id]  # Get the chosen question
+    return (chosen_question, questions[rand_question_id])  # Return the chosen question and its answer
+
+
+
+def check_correct(clint_ans, ans):
+    if ans=="T":
+        if clint_ans=='t' or '1' or 'y':
+            return True
+        else:
+            return False
+    else:
+        if clint_ans=='f' or '0' or 'n':
+            return True
+    return False
+
+# Function to handle receiving answers from a client
+def receive_answers_from_client(client_socket):
+    while True:
+        try:
+            answer = client_socket.recv(1024).decode().strip()
+            if not answer:
+                break
+            answer_queue.put((client_socket.getpeername(), answer))
+        except Exception as e:
+            print(f"Error receiving answer from {client_socket.getpeername()}: {e}")
+            break
+def start_game(server_socket):
+    message=f"Welcome to the {server_name} server, where we are answering trivia questions"
+    count =1
+    for client in clients:
+        message+= f"Player {count}: {client_names[client.getpeername()]} \n"
+        count+=1
+    server_socket.send(message)
+    print(message)
+#     now we need to start sending questions
+    while True:
+        question,answer = create_random_question()
+        # send the question to everyone
+        server_socket.send(question)
+        for client in clients:
+            # we will empty the queue
+            answer_queue.empty()
+            # we will start a thread for each client to receive the answer
+            threading.Thread(target=receive_answers_from_client, args=(client)).start()
+
 
 def start_tcp_server(server_socket, ip_address, port, game_ready_event):
     """
@@ -96,7 +161,6 @@ def start_tcp_server(server_socket, ip_address, port, game_ready_event):
     """
     # Bind the socket to the specified IP address and port
     server_socket.bind((ip_address, port))
-
     # Listen for incoming connections
     server_socket.listen(5)
     print(f"TCP Server started, listening on IP address {ip_address}, port {port}")
@@ -110,7 +174,7 @@ def start_tcp_server(server_socket, ip_address, port, game_ready_event):
             client_socket, client_address = server_socket.accept()
             print(f"New connection from {client_address}")
             # Start a new thread to handle the connection
-            threading.Thread(target=handle_tcp_connection, args=(client_socket, game_ready_event)).start()
+            threading.Thread(target=handle_tcp_connection, args=(client_socket, game_ready_event,server_socket)).start()
 
         except socket.timeout:
             break;
@@ -136,7 +200,7 @@ def send_udp_broadcast(tcp_port):
     # Define the message format
     magic_cookie = b'\xab\xcd\xdc\xba'
     message_type = b'\x02'
-    server_name_bytes = "KaKi".encode('utf-8').ljust(32, b'\x00')  # Change "KaKi" to your desired server name
+    server_name_bytes = server_name.encode('utf-8').ljust(32, b'\x00')  # Change "KaKi" to your desired server name
     server_port_bytes = tcp_port.to_bytes(2, byteorder='big')
 
     # Construct the message
