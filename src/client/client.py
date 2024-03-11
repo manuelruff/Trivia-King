@@ -13,6 +13,7 @@ def listen_for_offers():
         udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         udp_socket.bind(("", UDP_PORT))  # Listen on all interfaces for UDP broadcasts on UDP_PORT
         while True:
+            print("server successfully bind to UDP")
             data, addr = udp_socket.recvfrom(BUFFER_SIZE)  # Wait for a broadcast message
             if data:
                 # Ensure the data begins with the "magic cookie" and message type for a valid offer
