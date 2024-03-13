@@ -118,17 +118,24 @@ def check_correct(client_ans, ans):
         if client_ans in ('f', '0', 'n'):
             return True
     return False
-
 def receive_answers_from_client(client_socket):
-    while True:
-        try:
-            answer = client_socket.recv(1024).decode().strip()
-            if not answer:
-                break
+    client_socket.settimeout(10)  # Set a timeout of 10 seconds for receiving data
+    try:
+        # Wait for incoming data (answer) or timeout
+        answer = client_socket.recv(1024).decode().strip()
+        if answer:
             ANSWER_QUEUE.put((client_socket.getpeername(), answer))
+    except socket.timeout:
+        # Timeout occurred
+        try:
+            client_socket.send("enough".encode("utf-8"))
         except Exception as e:
-            print(f"Error receiving answer from {client_socket.getpeername()}: {e}")
-            break
+            print(f"Error sending message to {client_socket.getpeername()}: {e}")
+        pass
+    except Exception as e:
+        print(f"Error receiving answer from {client_socket.getpeername()}: {e}")
+    finally:
+        client_socket.settimeout(None)  # Reset the timeout to default (blocking mode)
 
 def start_game():
     message = f"Welcome to the {SERVER_NAME} server, where we are answering trivia questions\n"
@@ -181,7 +188,7 @@ def start_game():
                 break
     # Send the correct answer to everyone
     try:
-        message = f"{CLIENT_NAMES[client_answer[0]]} is correct! Alice wins!"
+        message = f"{CLIENT_NAMES[client_answer[0]]} is correct! {CLIENT_NAMES[client_answer[0]]} wins!"
         for client_socket, _ in CLIENTS:
             try:
                 client_socket.send(message.encode('utf-8'))

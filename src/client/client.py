@@ -73,7 +73,7 @@ def handle_user_input():
     global TCP_SOCKET
     while not stop_input_event.is_set():
         try:
-            user_input = input("Please enter your answer: ")
+            user_input = input("Please enter your answer: \n")
             # Check if stop signal is received before sending input
             if not stop_input_event.is_set():
                 TCP_SOCKET.send(user_input.encode())
