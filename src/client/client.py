@@ -70,23 +70,23 @@ def handle_server_messages():
     while True:
         try:
             hello_msg = TCP_SOCKET.recv(BUFFER_SIZE).decode("utf-8")
-            questsion_msg = TCP_SOCKET.recv(BUFFER_SIZE).decode("utf-8")
+            msg = TCP_SOCKET.recv(BUFFER_SIZE).decode("utf-8")
             if not hello_msg:
                 print("Server disconnected, listening for offer requests...")
                 TCP_SOCKET.close()
                 TCP_SOCKET = None  # Reset TCP_SOCKET to None
                 return
-            print(questsion_msg)
+            print(msg)
             # ans = input("Please enter your answer: ")
             # TCP_SOCKET.send(ans.encode())
             input_thread = threading.Thread(target=handle_user_input, args=(), daemon=True)
             input_thread.start()
-            if "enough" in questsion_msg.lower():
+            if "enough" in msg:
                 print("Received 'enough' from the server. Stopping input.")
                 stop_input_event.set()  # Signal to stop user input after printing the message
                 break  # Exit the loop after handling "enough"
-            if "Game over!" in questsion_msg:
-
+            if "Congratulations to the winner:" in msg:
+                raise socket.error
         except socket.error:
             print("Server disconnected, listening for offer requests...")
             TCP_SOCKET.close()
