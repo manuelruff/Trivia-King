@@ -73,7 +73,6 @@ def find_free_port(start_port, max_attempts=100):
     # If no free port is found within the specified range of attempts, raise an OSError
     raise OSError("Unable to find a free port")
 
-
 def handle_tcp_connection(client_socket, game_ready_event):
     """
     Function to handle TCP connections.
@@ -98,7 +97,6 @@ def handle_tcp_connection(client_socket, game_ready_event):
     # Close the connection
     client_socket.close()
 
-
 def create_random_question():
     """
     Function to randomly select a question from the available questions.
@@ -106,11 +104,9 @@ def create_random_question():
         tuple: A tuple containing the randomly selected question and its answer.
     """
     global QUESTIONS  # Access the global variable containing the questions
-    all_questions = list(QUESTIONS.keys())  # Get a list of all question IDs
-    rand_question_id = random.choice(all_questions)  # Choose a random question ID
-    chosen_question = QUESTIONS[rand_question_id]  # Get the chosen question
-    return (chosen_question, QUESTIONS[rand_question_id])  # Return the chosen question and its answer
-
+    all_questions = list(QUESTIONS.keys())  # Get a list of all question
+    rand_question = random.choice(all_questions)  # Choose a random question
+    return (rand_question, QUESTIONS[rand_question])  # Return the chosen question and its answer
 
 def check_correct(client_ans, ans):
     if ans == "T":
@@ -123,8 +119,6 @@ def check_correct(client_ans, ans):
             return True
     return False
 
-
-# Function to handle receiving answers from a client
 def receive_answers_from_client(client_socket):
     while True:
         try:
@@ -136,8 +130,7 @@ def receive_answers_from_client(client_socket):
             print(f"Error receiving answer from {client_socket.getpeername()}: {e}")
             break
 
-
-def start_game(server_socket):
+def start_game():
     message = f"Welcome to the {SERVER_NAME} server, where we are answering trivia questions\n"
     count = 1
     for client in CLIENTS:
@@ -197,7 +190,6 @@ def start_game(server_socket):
     except Exception as e:
         print(f"Error sending correct answer to clients: {e}")
 
-
 def start_tcp_server():
     """
     Function to start the TCP server.
@@ -230,8 +222,6 @@ def start_tcp_server():
     # If no new clients joined during the last 10 seconds, start the game
     GAME_READY_EVENT.set()
 
-
-
 def send_udp_broadcast():
     """
     Function to send UDP broadcast with custom message format.
@@ -254,11 +244,10 @@ def send_udp_broadcast():
     while True:
         # Send the message via UDP broadcast
         udp_socket.sendto(message, ('255.255.255.255', 13117))
-        print(f"UDP broadcast sent with server name: {server_name_bytes.decode().strip(chr(0))}, TCP port: {TCP_PORT}")
+        # print(f"UDP broadcast sent with server name: {server_name_bytes.decode().strip(chr(0))}, TCP port: {TCP_PORT}")
 
         # Wait for one second before sending the next broadcast
         time.sleep(1)
-
 
 def get_local_ip():
     """
