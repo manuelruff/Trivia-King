@@ -44,7 +44,7 @@ SERVER_NAME = "KaKi"
 ANSWER_QUEUE = queue.Queue()
 TCP_SOCKET=None
 UDP_SOCKET=None
-GAME_READY_EVENT=None
+GAME_READY_EVENT= threading.Event()  # Event to signal when the game is ready to start
 TCP_THREAD=None
 UDP_THREAD=None
 
@@ -321,7 +321,6 @@ def main():
         colored_print("Failed to retrieve local IP address. Please check your network connection.")
         exit()
     # Create threading events
-    GAME_READY_EVENT = threading.Event()  # Event to signal when the game is ready to start
     # setup the TCP server
     tcp_setup()
     # setup the UDP server

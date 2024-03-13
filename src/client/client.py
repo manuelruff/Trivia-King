@@ -32,11 +32,10 @@ def listen_for_offers():
 
 def connect_to_server(server_ip, tcp_port):
     global TCP_SOCKET  # Declare TCP_SOCKET as a global variable
-    tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    TCP_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         colored_print(f"Connecting to the server {server_ip} on port {tcp_port}")
-        tcp_socket.connect((server_ip, tcp_port))
-        TCP_SOCKET = tcp_socket
+        TCP_SOCKET.connect((server_ip, tcp_port))
         colored_print("Connected successfully to the server.")
         login(TCP_SOCKET)
         colored_print("Successful login name sent to server")
@@ -111,20 +110,25 @@ def handle_server_messages():
                 TCP_SOCKET = None
                 return
             # Handle different cases based on message content
+            print("im here")
             if "Welcome" in msg:
                 colored_print(msg)
+                continue
             elif "enough" in msg:
                 colored_print(msg)
                 handle_enough()
+                continue
             elif "Congratulations to the winner:" in msg:
                 colored_print(msg)
                 handle_winner()
+                continue
             else:
                 colored_print(msg)
                 # if the message is the question
-                ans_thread = threading.Thread(target=handle_question(), args=(), daemon=True)
+                ans_thread = threading.Thread(target=handle_question(), args=())
                 ans_thread.start()
                 ans_thread.join()
+                continue
 
         except socket.error:
             colored_print("Server disconnected, listening for offer requests...")
