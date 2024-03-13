@@ -85,17 +85,14 @@ def handle_winner():
 def handle_question():
     """Function to capture and send user input in a separate thread."""
     global TCP_SOCKET
-    while not stop_input_event.is_set():
+    if not stop_input_event.is_set():
         try:
             user_input = input("Please enter your answer: \n")
             # Check if stop signal is received before sending input
             if not stop_input_event.is_set():
                 TCP_SOCKET.send(user_input.encode())
-            else:
-                break
         except Exception as e:
             print(f"Error sending input to server: {e}")
-            break
 def handle_server_messages():
     global TCP_SOCKET
     while True:
