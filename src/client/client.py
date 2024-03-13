@@ -52,6 +52,8 @@ def login(conn):
     username = input("Please enter username: \n")
     conn.send(username.encode())
 
+
+
 def handle_server_messages(tcp_socket):
     while True:
         ready_sockets, _, _ = select.select([tcp_socket, sys.stdin], [], [])
@@ -62,7 +64,11 @@ def handle_server_messages(tcp_socket):
                     print("Server disconnected, listening for offer requests...")
                     tcp_socket.close()
                     return listen_for_offers()
+                # if the question sent correctly
                 print(message)
+                ans = input("please enter your answer: ")
+                sock.send(ans.encode())
+
             else:
                 msg = sys.stdin.readline()
                 tcp_socket.sendall(msg.encode())
