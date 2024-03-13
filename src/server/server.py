@@ -126,21 +126,40 @@ def receive_answers_from_client(client_socket):
             print(f"Error receiving answer from {client_socket.getpeername()}: {e}")
             break
 
+import time
+import queue
+
 def start_game(server_socket):
     message = f"Welcome to the {server_name} server, where we are answering trivia questions\n"
     count = 1
     for client in clients:
         message += f"Player {count}: {client_names[client[1]]} \n"
         count += 1
-    server_socket.send(message.encode())
-    print(message)
+    try:
+        for client_socket, _ in clients:
+            try:
+                client_socket.send(message.encode('utf-8'))
+            except Exception as e:
+                print(f"Error sending message to {client_socket.getpeername()}: {e}")
+        print(message)
+    except Exception as e:
+        print(f"Error sending message to clients: {e}")
 
+    # flag for finishing game
+    game_finished = False
     # Now we need to start sending questions
-    while True:
+    while not game_finished:
         question, answer = create_random_question()
         # Send the question to everyone
-        server_socket.send(question.encode())
-        print(question)
+        try:
+            for client_socket, _ in clients:
+                try:
+                    client_socket.send(question.encode('utf-8'))
+                except Exception as e:
+                    print(f"Error sending message to {client_socket.getpeername()}: {e}")
+            print(question)
+        except Exception as e:
+            print(f"Error sending question to clients: {e}")
         # We will empty the queue
         answer_queue.empty()
         for client in clients:
@@ -153,12 +172,24 @@ def start_game(server_socket):
             try:
                 client_answer = answer_queue.get(timeout=timeout)
                 if check_correct(client_answer[1], answer):
-                    print(f"Correct answer received from {client_answer[0]}: {client_answer[1]}")
+                    game_finished= True
                     break
             except queue.Empty:
                 # No answer received within the timeout period
                 print("No correct answer received within the timeout period")
                 break
+     # Send the correct answer to everyone
+    try:
+        message=f"{client_names[client_answer[0]]} is correct! Alice wins!"
+        for client_socket, _ in clients:
+            try:
+                client_socket.send(message.encode('utf-8'))
+            except Exception as e:
+                print(f"Error sending message to {client_socket.getpeername()}: {e}")
+    except Exception as e:
+        print(f"Error sending correct answer to clients: {e}")
+
+
 
 def start_tcp_server(server_socket, ip_address, port, game_ready_event):
     """
