@@ -82,6 +82,7 @@ def login(conn):
 def handle_enough():
     colored_print("Received 'enough' from the server. Stopping input.")
     stop_input_event.set()
+    handle_question()
 def handle_winner():
     colored_print("Congratulations message received. Exiting.")
     raise socket.error  # Or handle the winning case as needed
@@ -96,6 +97,9 @@ def handle_question():
                 TCP_SOCKET.send(user_input.encode())
         except Exception as e:
             colored_print(f"Error sending input to server: {e}")
+    else:
+        user_input = ""
+        TCP_SOCKET.send(user_input.encode())
 def handle_server_messages():
     global TCP_SOCKET
     while True:
@@ -129,10 +133,12 @@ def handle_server_messages():
             return
 
 def main():
-    server_ip, tcp_port = listen_for_offers()
-    connect_to_server(server_ip, tcp_port)
-    # Create and start thread for handling server messages
-    handle_server_messages()
+    while True:
+        server_ip, tcp_port = listen_for_offers()
+        connect_to_server(server_ip, tcp_port)
+        # Create and start thread for handling server messages
+        handle_server_messages()
+
 
 if __name__ == "__main__":
     main()
