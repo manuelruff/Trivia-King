@@ -42,7 +42,8 @@ QUESTIONS = {
 }
 SERVER_NAME = "KaKi"
 ANSWER_QUEUE = queue.Queue()
-SERVER_SOCKETSERVER_SOCKET=None
+TCP_SOCKET=None
+UDP_SOCKET=None
 GAME_READY_EVENT=None
 TCP_THREAD=None
 UDP_THREAD=None
@@ -72,7 +73,43 @@ def find_free_port(start_port, max_attempts=100):
             pass
     # If no free port is found within the specified range of attempts, raise an OSError
     raise OSError("Unable to find a free port")
-
+def get_local_ip():
+    """
+    Get the local IP address of the computer.
+    """
+    # Create a temporary socket
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        try:
+            # Connect to a remote server (Google's public DNS server)
+            s.connect(("8.8.8.8", 80))
+            # Get the local IP address
+            local_ip = s.getsockname()[0]
+        except Exception as e:
+            print(f"Error getting local IP address: {e}")
+            local_ip = None
+    return local_ip
+def create_random_question():
+    """
+    Function to randomly select a question from the available questions.
+    Returns:
+        tuple: A tuple containing the randomly selected question and its answer.
+    """
+    global QUESTIONS  # Access the global variable containing the questions
+    all_questions = list(QUESTIONS.keys())  # Get a list of all question
+    rand_question = random.choice(all_questions)  # Choose a random question
+    return (rand_question, QUESTIONS[rand_question])  # Return the chosen question and its answer
+def check_correct(client_ans, ans):
+    # for the tests
+    return True
+    if ans == "T":
+        if client_ans in ('t', '1', 'y'):
+            return True
+        else:
+            return False
+    else:
+        if client_ans in ('f', '0', 'n'):
+            return True
+    return False
 def handle_tcp_connection(client_socket, game_ready_event):
     """
     Function to handle TCP connections.
@@ -90,34 +127,12 @@ def handle_tcp_connection(client_socket, game_ready_event):
     # Wait for the game to be ready
     game_ready_event.wait()
     # Cancel the timeout after the loop
-    SERVER_SOCKET.settimeout(None)
+    TCP_SOCKET.settimeout(None)
     # Your game logic goes here
     # Once the game is ready, you can proceed with the game
     start_game()
     # Close the connection
     client_socket.close()
-
-def create_random_question():
-    """
-    Function to randomly select a question from the available questions.
-    Returns:
-        tuple: A tuple containing the randomly selected question and its answer.
-    """
-    global QUESTIONS  # Access the global variable containing the questions
-    all_questions = list(QUESTIONS.keys())  # Get a list of all question
-    rand_question = random.choice(all_questions)  # Choose a random question
-    return (rand_question, QUESTIONS[rand_question])  # Return the chosen question and its answer
-
-def check_correct(client_ans, ans):
-    if ans == "T":
-        if client_ans in ('t', '1', 'y'):
-            return True
-        else:
-            return False
-    else:
-        if client_ans in ('f', '0', 'n'):
-            return True
-    return False
 def receive_answers_from_client(client_socket):
     client_socket.settimeout(10)  # Set a timeout of 10 seconds for receiving data
     try:
@@ -136,7 +151,6 @@ def receive_answers_from_client(client_socket):
         print(f"Error receiving answer from {client_socket.getpeername()}: {e}")
     finally:
         client_socket.settimeout(None)  # Reset the timeout to default (blocking mode)
-
 def start_game():
     message = f"Welcome to the {SERVER_NAME} server, where we are answering trivia questions\n"
     count = 1
@@ -188,35 +202,38 @@ def start_game():
                 break
     # Send the correct answer to everyone
     try:
-        message = f"{CLIENT_NAMES[client_answer[0]]} is correct! {CLIENT_NAMES[client_answer[0]]} wins!"
+        message1 = f"{CLIENT_NAMES[client_answer[0]]} is correct! {CLIENT_NAMES[client_answer[0]]} wins!"
+        message2= f"Game over!\nCongratulations to the winner: {CLIENT_NAMES[client_answer[0]]}"
         for client_socket, _ in CLIENTS:
             try:
-                client_socket.send(message.encode('utf-8'))
+                client_socket.send(message1.encode('utf-8'))
+                client_socket.send(message2.encode('utf-8'))
+                print("Game over,sending out offer requests...")
+                # disconnecting all clients
+                # disconnect_clients()
+                #send udp broadcast again
+                # start_threads()
+
             except Exception as e:
                 print(f"Error sending message to {client_socket.getpeername()}: {e}")
     except Exception as e:
         print(f"Error sending correct answer to clients: {e}")
-
-def start_tcp_server():
+def tcp_connect_clients():
     """
-    Function to start the TCP server.
-
+    Function to start getting connections
     Args:
         game_ready_event (threading.Event): Event indicating if the game is ready to start.
     """
-    # Bind the socket to the specified IP address and port
-    SERVER_SOCKET.bind((IP_ADDRESS, TCP_PORT))
     # Listen for incoming connections
-    SERVER_SOCKET.listen(5)
+    TCP_SOCKET.listen(10)
     print(f"TCP Server started, listening on IP address {IP_ADDRESS}, port {TCP_PORT}")
     # Set the timeout for accepting connections
-    SERVER_SOCKET.settimeout(10)
-
+    TCP_SOCKET.settimeout(10)
     # Accept and handle incoming connections for up to 10 seconds
     while True:
         # Accept incoming connections
         try:
-            client_socket, client_address = SERVER_SOCKET.accept()
+            client_socket, client_address = TCP_SOCKET.accept()
             print(f"New connection from {client_address}")
             # Start a new thread to handle the connection
             threading.Thread(target=handle_tcp_connection, args=(client_socket, GAME_READY_EVENT)).start()
@@ -224,21 +241,14 @@ def start_tcp_server():
         except socket.timeout:
             break
     # Cancel the timeout after the loop
-    SERVER_SOCKET.settimeout(None)
+    TCP_SOCKET.settimeout(None)
     print("Game ready!")
     # If no new clients joined during the last 10 seconds, start the game
     GAME_READY_EVENT.set()
-
 def send_udp_broadcast():
     """
     Function to send UDP broadcast with custom message format.
     """
-    # Create a UDP socket
-    udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-    # Enable broadcast
-    udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-
     # Define the message format
     magic_cookie = b'\xab\xcd\xdc\xba'
     message_type = b'\x02'
@@ -248,32 +258,41 @@ def send_udp_broadcast():
     # Construct the message
     message = magic_cookie + message_type + server_name_bytes + server_port_bytes
 
-    while True:
+    while not GAME_READY_EVENT.is_set():
         # Send the message via UDP broadcast
-        udp_socket.sendto(message, ('255.255.255.255', 13117))
-        # print(f"UDP broadcast sent with server name: {server_name_bytes.decode().strip(chr(0))}, TCP port: {TCP_PORT}")
+        UDP_SOCKET.sendto(message, ('255.255.255.255', 13117))
+        print(f"UDP broadcast sent with server name: {server_name_bytes.decode().strip(chr(0))}, TCP port: {TCP_PORT}")
 
         # Wait for one second before sending the next broadcast
         time.sleep(1)
-
-def get_local_ip():
+def disconnect_clients():
     """
-    Get the local IP address of the computer.
+    Function to disconnect all connected clients.
     """
-    # Create a temporary socket
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+    for client_socket, _ in CLIENTS:
         try:
-            # Connect to a remote server (Google's public DNS server)
-            s.connect(("8.8.8.8", 80))
-            # Get the local IP address
-            local_ip = s.getsockname()[0]
+            # Close the client socket
+            client_socket.close()
         except Exception as e:
-            print(f"Error getting local IP address: {e}")
-            local_ip = None
-    return local_ip
+            print(f"Error closing client socket: {e}")
 
+    # Clear the list of connected clients
+    CLIENTS.clear()
+    # Clear the dictionary of client names
+    CLIENT_NAMES.clear()
+
+    print("All clients disconnected.")
+
+def start_threads():
+    # Start the TCP server in a separate thread
+    TCP_THREAD = threading.Thread(target=tcp_connect_clients, args=())
+    TCP_THREAD.start()
+
+    # Start sending UDP broadcasts about the TCP server
+    UDP_THREAD = threading.Thread(target=send_udp_broadcast, args=())
+    UDP_THREAD.start()
 def main():
-    global IP_ADDRESS, TCP_PORT, SERVER_SOCKET, GAME_READY_EVENT, TCP_THREAD, UDP_THREAD
+    global IP_ADDRESS, TCP_PORT, TCP_SOCKET, GAME_READY_EVENT, TCP_THREAD, UDP_THREAD,UDP_SOCKET
     # Configuration
     IP_ADDRESS = get_local_ip()  # IP address to listen on
     if IP_ADDRESS is None:
@@ -281,24 +300,18 @@ def main():
         exit()
     # Find a free port for TCP server
     TCP_PORT = find_free_port(20000)
-
     # Create threading events
     GAME_READY_EVENT = threading.Event()  # Event to signal when the game is ready to start
-
     # Create a TCP socket
-    SERVER_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    # Start the TCP server in a separate thread
-    TCP_THREAD = threading.Thread(target=start_tcp_server, args=())
-    TCP_THREAD.start()
-
-    # Start sending UDP broadcasts about the TCP server
-    UDP_THREAD = threading.Thread(target=send_udp_broadcast, args=())
-    UDP_THREAD.start()
-
-    # Join the UDP thread once the game is started
-    UDP_THREAD.join()
-
+    TCP_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # Bind the socket to the specified IP address and port
+    TCP_SOCKET.bind((IP_ADDRESS, TCP_PORT))
+    # Create a UDP socket
+    UDP_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    # Enable broadcast
+    UDP_SOCKET.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    # Start the TCP server connections and UDP broadcast threads
+    start_threads()
 
 if __name__ == "__main__":
     main()

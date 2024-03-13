@@ -10,7 +10,7 @@ BUFFER_SIZE = 1024
 TCP_SOCKET = None
 stop_input_event = threading.Event()
 # RAND_NAMES = [f"NAME{i}" for i in range(1, 1000)]
-
+NAMES = ["Luffy", "Zoro", "Nami", "Usopp", "Sanji", "Chopper", "Robin", "Franky", "Brook", "Monica", "Ross", "Rachel", "Chandler", "Joey", "Phoebe"]
 def listen_for_offers():
     print("Client started, listening for offer requests...")
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp_socket:
@@ -43,26 +43,14 @@ def connect_to_server(server_ip, tcp_port):
     except socket.error as e:
         print(f"Error connecting to the server: {e}")
 
-# def login(conn):
-#     try:
-#         username = input("Please enter username: \n")
-#         conn.send(username.encode())
-#     except Exception as e:
-#         print(f"Error during login: {e}")
+import random
 
 def login(conn):
-    random_names = [f"NAME{i}" for i in range(1, 1000)]
-    print("Please enter username: \n", end='', flush=True)
-    ready, _, _ = select.select([sys.stdin], [], [], 7)
-    if ready:
-        username = sys.stdin.readline().strip()
-    else:
-        username = random.choice(random_names)  # Select a random name
-
     try:
-        conn.send(username.encode())
+        default_name = random.choice(NAMES)
+        conn.send(default_name.encode())
     except Exception as e:
-        print(f"Error sending username to server: {e}")
+        print(f"Error during login: {e}")
 
 
 def handle_server_messages():
