@@ -48,7 +48,7 @@ GAME_READY_EVENT=None
 TCP_THREAD=None
 UDP_THREAD=None
 
-def colored_print(text, color='\033[92m'):
+def colored_print(text, color='\033[36m'):
     print(color + text + '\033[0m')
 def find_free_port(start_port, max_attempts=100):
     """
@@ -204,8 +204,8 @@ def start_game():
                 break
     # Send the correct answer to everyone
     try:
-        message1 = f"{CLIENT_NAMES[client_answer[0]]} is correct! {CLIENT_NAMES[client_answer[0]]} wins!"
-        message2= f"Game over!\nCongratulations to the winner: {CLIENT_NAMES[client_answer[0]]}"
+        message1 = f"{CLIENT_NAMES[client_answer[0]]} is correct! {CLIENT_NAMES[client_answer[0]]} wins!\n"
+        message2= f"Game over!\nCongratulations to the winner: {CLIENT_NAMES[client_answer[0]]}\n"
         for client_socket, _ in CLIENTS:
             try:
                 client_socket.send(message1.encode('utf-8'))
