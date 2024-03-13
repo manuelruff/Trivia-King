@@ -48,6 +48,8 @@ GAME_READY_EVENT=None
 TCP_THREAD=None
 UDP_THREAD=None
 
+def colored_print(text, color='\033[92m'):
+    print(color + text + '\033[0m')
 def find_free_port(start_port, max_attempts=100):
     """
     Function to find a free port within a specified range of attempts.
@@ -85,7 +87,7 @@ def get_local_ip():
             # Get the local IP address
             local_ip = s.getsockname()[0]
         except Exception as e:
-            print(f"Error getting local IP address: {e}")
+            colored_print(f"Error getting local IP address: {e}")
             local_ip = None
     return local_ip
 def create_random_question():
@@ -118,12 +120,12 @@ def handle_tcp_connection(client_socket, game_ready_event):
         client_socket (socket.socket): The socket object representing the TCP connection.
         game_ready_event (threading.Event): Event indicating if the game is ready to start.
     """
-    print("Server started, listening on IP address {}")
-    print(f"TCP connection established with {client_socket.getpeername()}")
+    colored_print("Server started, listening on IP address {}")
+    colored_print(f"TCP connection established with {client_socket.getpeername()}")
     # Add the client information to the list of connected clients
     CLIENTS.append((client_socket, client_socket.getpeername()))
     CLIENT_NAMES[client_socket.getpeername()] = client_socket.recvfrom(1024)[0].decode()
-    print(f"Client {CLIENT_NAMES[client_socket.getpeername()]} has joined the game")
+    colored_print(f"Client {CLIENT_NAMES[client_socket.getpeername()]} has joined the game")
     # Wait for the game to be ready
     game_ready_event.wait()
     # Cancel the timeout after the loop
@@ -145,10 +147,10 @@ def receive_answers_from_client(client_socket):
         try:
             client_socket.send("enough".encode("utf-8"))
         except Exception as e:
-            print(f"Error sending message to {client_socket.getpeername()}: {e}")
+            colored_print(f"Error sending message to {client_socket.getpeername()}: {e}")
         pass
     except Exception as e:
-        print(f"Error receiving answer from {client_socket.getpeername()}: {e}")
+        colored_print(f"Error receiving answer from {client_socket.getpeername()}: {e}")
     finally:
         client_socket.settimeout(None)  # Reset the timeout to default (blocking mode)
 def start_game():
@@ -162,10 +164,10 @@ def start_game():
             try:
                 client_socket.send(message.encode('utf-8'))
             except Exception as e:
-                print(f"Error sending message to {client_socket.getpeername()}: {e}")
-        print(message)
+                colored_print(f"Error sending message to {client_socket.getpeername()}: {e}")
+        colored_print(message)
     except Exception as e:
-        print(f"Error sending message to clients: {e}")
+        colored_print(f"Error sending message to clients: {e}")
 
     # flag for finishing game
     game_finished = False
@@ -178,10 +180,10 @@ def start_game():
                 try:
                     client_socket.send(question.encode('utf-8'))
                 except Exception as e:
-                    print(f"Error sending message to {client_socket.getpeername()}: {e}")
-            print(question)
+                    colored_print(f"Error sending message to {client_socket.getpeername()}: {e}")
+            colored_print(question)
         except Exception as e:
-            print(f"Error sending question to clients: {e}")
+            colored_print(f"Error sending question to clients: {e}")
         # We will empty the queue
         ANSWER_QUEUE.empty()
         for client in CLIENTS:
@@ -198,7 +200,7 @@ def start_game():
                     break
             except queue.Empty:
                 # No answer received within the timeout period
-                print("No correct answer received within the timeout period")
+                colored_print("No correct answer received within the timeout period")
                 break
     # Send the correct answer to everyone
     try:
@@ -208,7 +210,7 @@ def start_game():
             try:
                 client_socket.send(message1.encode('utf-8'))
                 client_socket.send(message2.encode('utf-8'))
-                print("Game over,sending out offer requests...")
+                colored_print("Game over,sending out offer requests...")
                 # finish the game
                 GAME_READY_EVENT.clear()
                 # disconnecting all clients
@@ -217,13 +219,13 @@ def start_game():
                 start_threads()
 
             except Exception as e:
-                print(f"Error sending message to {client_socket.getpeername()}: {e}")
+                colored_print(f"Error sending message to {client_socket.getpeername()}: {e}")
     except Exception as e:
-        print(f"Error sending correct answer to clients: {e}")
+        colored_print(f"Error sending correct answer to clients: {e}")
 def client_connect():
     # Accept incoming connection
     client_socket, client_address = TCP_SOCKET.accept()
-    print(f"New connection from {client_address}")
+    colored_print(f"New connection from {client_address}")
     # Start a new thread to handle the connection
     threading.Thread(target=handle_tcp_connection, args=(client_socket, GAME_READY_EVENT)).start()
 def tcp_connect_clients():
@@ -232,13 +234,13 @@ def tcp_connect_clients():
     Args:
         game_ready_event (threading.Event): Event indicating if the game is ready to start.
     """
-    print(f"TCP Server started, listening on IP address {IP_ADDRESS}, port {TCP_PORT}")
+    colored_print(f"TCP Server started, listening on IP address {IP_ADDRESS}, port {TCP_PORT}")
     #we wait for first connections
     # Accept incoming connections
     try:
         client_connect()
     except :
-        print("unable to connect to client")
+        colored_print("unable to connect to client")
     # Set the timeout for accepting new connections
     TCP_SOCKET.settimeout(10)
     # Accept and handle incoming connections for up to 10 seconds
@@ -249,7 +251,7 @@ def tcp_connect_clients():
             break
     # Cancel the timeout after the loop
     TCP_SOCKET.settimeout(None)
-    print("Game ready!")
+    colored_print("Game ready!")
     # If no new clients joined during the last 10 seconds, start the game
     GAME_READY_EVENT.set()
 def send_udp_broadcast():
@@ -268,7 +270,7 @@ def send_udp_broadcast():
     while not GAME_READY_EVENT.is_set():
         # Send the message via UDP broadcast
         UDP_SOCKET.sendto(message, ('255.255.255.255', 13117))
-        print(f"UDP broadcast sent with server name: {server_name_bytes.decode().strip(chr(0))}, TCP port: {TCP_PORT}")
+        colored_print(f"UDP broadcast sent with server name: {server_name_bytes.decode().strip(chr(0))}, TCP port: {TCP_PORT}")
 
         # Wait for one second before sending the next broadcast
         time.sleep(1)
@@ -281,14 +283,14 @@ def disconnect_clients():
             # Close the client socket
             client_socket.close()
         except Exception as e:
-            print(f"Error closing client socket: {e}")
+            colored_print(f"Error closing client socket: {e}")
 
     # Clear the list of connected clients
     CLIENTS.clear()
     # Clear the dictionary of client names
     CLIENT_NAMES.clear()
 
-    print("All clients disconnected.")
+    colored_print("All clients disconnected.")
 def start_threads():
     # Start the TCP server in a separate thread
     TCP_THREAD = threading.Thread(target=tcp_connect_clients, args=())
@@ -318,7 +320,7 @@ def main():
     # Configuration
     IP_ADDRESS = get_local_ip()  # IP address to listen on
     if IP_ADDRESS is None:
-        print("Failed to retrieve local IP address. Please check your network connection.")
+        colored_print("Failed to retrieve local IP address. Please check your network connection.")
         exit()
     # Create threading events
     GAME_READY_EVENT = threading.Event()  # Event to signal when the game is ready to start
