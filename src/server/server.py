@@ -209,35 +209,42 @@ def start_game():
                 client_socket.send(message1.encode('utf-8'))
                 client_socket.send(message2.encode('utf-8'))
                 print("Game over,sending out offer requests...")
+                # finish the game
+                GAME_READY_EVENT.clear()
                 # disconnecting all clients
-                # disconnect_clients()
+                disconnect_clients()
                 #send udp broadcast again
-                # start_threads()
+                start_threads()
 
             except Exception as e:
                 print(f"Error sending message to {client_socket.getpeername()}: {e}")
     except Exception as e:
         print(f"Error sending correct answer to clients: {e}")
+def client_connect():
+    # Accept incoming connection
+    client_socket, client_address = TCP_SOCKET.accept()
+    print(f"New connection from {client_address}")
+    # Start a new thread to handle the connection
+    threading.Thread(target=handle_tcp_connection, args=(client_socket, GAME_READY_EVENT)).start()
 def tcp_connect_clients():
     """
     Function to start getting connections
     Args:
         game_ready_event (threading.Event): Event indicating if the game is ready to start.
     """
-    # Listen for incoming connections
-    TCP_SOCKET.listen(10)
     print(f"TCP Server started, listening on IP address {IP_ADDRESS}, port {TCP_PORT}")
-    # Set the timeout for accepting connections
+    #we wait for first connections
+    # Accept incoming connections
+    try:
+        client_connect()
+    except :
+        print("unable to connect to client")
+    # Set the timeout for accepting new connections
     TCP_SOCKET.settimeout(10)
     # Accept and handle incoming connections for up to 10 seconds
     while True:
-        # Accept incoming connections
         try:
-            client_socket, client_address = TCP_SOCKET.accept()
-            print(f"New connection from {client_address}")
-            # Start a new thread to handle the connection
-            threading.Thread(target=handle_tcp_connection, args=(client_socket, GAME_READY_EVENT)).start()
-
+            client_connect()
         except socket.timeout:
             break
     # Cancel the timeout after the loop
@@ -282,7 +289,6 @@ def disconnect_clients():
     CLIENT_NAMES.clear()
 
     print("All clients disconnected.")
-
 def start_threads():
     # Start the TCP server in a separate thread
     TCP_THREAD = threading.Thread(target=tcp_connect_clients, args=())
@@ -291,6 +297,22 @@ def start_threads():
     # Start sending UDP broadcasts about the TCP server
     UDP_THREAD = threading.Thread(target=send_udp_broadcast, args=())
     UDP_THREAD.start()
+def tcp_setup():
+    global IP_ADDRESS, TCP_PORT, TCP_SOCKET
+    # Find a free port for TCP server
+    TCP_PORT = find_free_port(20000)
+    # Create a TCP socket
+    TCP_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # Bind the socket to the specified IP address and port
+    TCP_SOCKET.bind((IP_ADDRESS, TCP_PORT))
+    # Listen for incoming connections
+    TCP_SOCKET.listen(10)
+def udp_setup():
+    global UDP_SOCKET
+    # Create a UDP socket
+    UDP_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    # Enable broadcast
+    UDP_SOCKET.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 def main():
     global IP_ADDRESS, TCP_PORT, TCP_SOCKET, GAME_READY_EVENT, TCP_THREAD, UDP_THREAD,UDP_SOCKET
     # Configuration
@@ -298,18 +320,12 @@ def main():
     if IP_ADDRESS is None:
         print("Failed to retrieve local IP address. Please check your network connection.")
         exit()
-    # Find a free port for TCP server
-    TCP_PORT = find_free_port(20000)
     # Create threading events
     GAME_READY_EVENT = threading.Event()  # Event to signal when the game is ready to start
-    # Create a TCP socket
-    TCP_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # Bind the socket to the specified IP address and port
-    TCP_SOCKET.bind((IP_ADDRESS, TCP_PORT))
-    # Create a UDP socket
-    UDP_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    # Enable broadcast
-    UDP_SOCKET.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    # setup the TCP server
+    tcp_setup()
+    # setup the UDP server
+    udp_setup()
     # Start the TCP server connections and UDP broadcast threads
     start_threads()
 
