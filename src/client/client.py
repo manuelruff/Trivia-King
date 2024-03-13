@@ -1,10 +1,15 @@
 import socket
 import threading
+import select
+import sys
+import random
+
 # Constants
 UDP_PORT = 13117
 BUFFER_SIZE = 1024
 TCP_SOCKET = None
 stop_input_event = threading.Event()
+# RAND_NAMES = [f"NAME{i}" for i in range(1, 1000)]
 
 def listen_for_offers():
     print("Client started, listening for offer requests...")
@@ -38,9 +43,27 @@ def connect_to_server(server_ip, tcp_port):
     except socket.error as e:
         print(f"Error connecting to the server: {e}")
 
+# def login(conn):
+#     try:
+#         username = input("Please enter username: \n")
+#         conn.send(username.encode())
+#     except Exception as e:
+#         print(f"Error during login: {e}")
+
 def login(conn):
-    username = input("Please enter username: \n")
-    conn.send(username.encode())
+    random_names = [f"NAME{i}" for i in range(1, 1000)]
+    print("Please enter username: \n", end='', flush=True)
+    ready, _, _ = select.select([sys.stdin], [], [], 7)
+    if ready:
+        username = sys.stdin.readline().strip()
+    else:
+        username = random.choice(random_names)  # Select a random name
+
+    try:
+        conn.send(username.encode())
+    except Exception as e:
+        print(f"Error sending username to server: {e}")
+
 
 def handle_server_messages():
     global TCP_SOCKET  # Declare TCP_SOCKET as a global variable
@@ -62,6 +85,8 @@ def handle_server_messages():
                 print("Received 'enough' from the server. Stopping input.")
                 stop_input_event.set()  # Signal to stop user input after printing the message
                 break  # Exit the loop after handling "enough"
+            if "Game over!" in questsion_msg:
+
         except socket.error:
             print("Server disconnected, listening for offer requests...")
             TCP_SOCKET.close()
