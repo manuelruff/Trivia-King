@@ -116,6 +116,7 @@ def handle_server_messages():
                 colored_print(msg)
                 handle_winner()
             else:
+                colored_print(msg)
                 # if the message is the question
                 ans_thread = threading.Thread(target=handle_question(), args=(), daemon=True)
                 ans_thread.start()
