@@ -45,13 +45,14 @@ def handle_server_messages():
     global TCP_SOCKET  # Declare TCP_SOCKET as a global variable
     while True:
         try:
-            message = TCP_SOCKET.recv(BUFFER_SIZE).decode("utf-8")
-            if not message:
+            hello_msg = TCP_SOCKET.recv(BUFFER_SIZE).decode("utf-8")
+            questsion_msg = TCP_SOCKET.recv(BUFFER_SIZE).decode("utf-8")
+            if not hello_msg:
                 print("Server disconnected, listening for offer requests...")
                 TCP_SOCKET.close()
                 TCP_SOCKET = None  # Reset TCP_SOCKET to None
                 return
-            print(message)
+            print(questsion_msg)
             ans = input("Please enter your answer: ")
             TCP_SOCKET.send(ans.encode())
         except socket.error:
