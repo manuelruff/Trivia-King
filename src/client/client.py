@@ -40,7 +40,7 @@ def connect_to_server(server_ip, tcp_port):
             tcp_socket.connect((server_ip, tcp_port))
             print("Connected successfully to the server.")
             login(tcp_socket)
-            print("successfull login name")
+            print("successfull login name sent to server")
             # handle_server_messages(tcp_socket)
         except socket.error as e:
             print(f"Error connecting to the server: {e}")
