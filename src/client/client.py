@@ -1,9 +1,10 @@
 import socket
-
+import threading
 # Constants
 UDP_PORT = 13117
 BUFFER_SIZE = 1024
-TCP_SOCKET = None  # Initialize TCP_SOCKET as a global variable
+TCP_SOCKET = None
+stop_input_event = threading.Event()
 
 def listen_for_offers():
     print("Client started, listening for offer requests...")
@@ -53,18 +54,43 @@ def handle_server_messages():
                 TCP_SOCKET = None  # Reset TCP_SOCKET to None
                 return
             print(questsion_msg)
-            ans = input("Please enter your answer: ")
-            TCP_SOCKET.send(ans.encode())
+            # ans = input("Please enter your answer: ")
+            # TCP_SOCKET.send(ans.encode())
+            input_thread = threading.Thread(target=handle_user_input, args=(TCP_SOCKET,), daemon=True)
+            input_thread.start()
+            if "enough" in questsion_msg.lower():
+                print("Received 'enough' from the server. Stopping input.")
+                stop_input_event.set()  # Signal to stop user input after printing the message
+                break  # Exit the loop after handling "enough"
         except socket.error:
             print("Server disconnected, listening for offer requests...")
             TCP_SOCKET.close()
             TCP_SOCKET = None  # Reset TCP_SOCKET to None
             return
 
+def handle_user_input():
+    """Function to capture and send user input in a separate thread."""
+    global TCP_SOCKET
+    while not stop_input_event.is_set():
+        try:
+            user_input = input("Please enter your answer: ")
+            # Check if stop signal is received before sending input
+            if not stop_input_event.is_set():
+                TCP_SOCKET.send(user_input.encode())
+            else:
+                break
+        except Exception as e:
+            print(f"Error sending input to server: {e}")
+            break
+
 def main():
     server_ip, tcp_port = listen_for_offers()
     connect_to_server(server_ip, tcp_port)
-    handle_server_messages()
+    #handle_server_messages()
+    # Create and start thread for handling server messages
+    server_thread = threading.Thread(target=handle_server_messages, args=(), daemon=True)
+    server_thread.start()
+    server_thread.join()
 
 if __name__ == "__main__":
     main()
