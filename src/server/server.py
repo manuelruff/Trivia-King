@@ -93,7 +93,7 @@ def handle_tcp_connection(client_socket, game_ready_event):
     SERVER_SOCKET.settimeout(None)
     # Your game logic goes here
     # Once the game is ready, you can proceed with the game
-    start_game(SERVER_SOCKET)
+    start_game()
     # Close the connection
     client_socket.close()
 

@@ -56,7 +56,7 @@ def handle_server_messages():
             print(questsion_msg)
             # ans = input("Please enter your answer: ")
             # TCP_SOCKET.send(ans.encode())
-            input_thread = threading.Thread(target=handle_user_input, args=(TCP_SOCKET,), daemon=True)
+            input_thread = threading.Thread(target=handle_user_input, args=(), daemon=True)
             input_thread.start()
             if "enough" in questsion_msg.lower():
                 print("Received 'enough' from the server. Stopping input.")
