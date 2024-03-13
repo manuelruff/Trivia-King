@@ -125,25 +125,40 @@ def receive_answers_from_client(client_socket):
         except Exception as e:
             print(f"Error receiving answer from {client_socket.getpeername()}: {e}")
             break
+
 def start_game(server_socket):
-    message=f"Welcome to the {server_name} server, where we are answering trivia questions"
-    count =1
+    message = f"Welcome to the {server_name} server, where we are answering trivia questions\n"
+    count = 1
     for client in clients:
-        message+= f"Player {count}: {client_names[client[1]]} \n"
-        count+=1
+        message += f"Player {count}: {client_names[client[1]]} \n"
+        count += 1
     server_socket.send(message.encode())
     print(message)
-#     now we need to start sending questions
-    while True:
-        question,answer = create_random_question()
-        # send the question to everyone
-        server_socket.send(question.encode())
-        for client in clients:
-            # we will empty the queue
-            answer_queue.empty()
-            # we will start a thread for each client to receive the answer
-            threading.Thread(target=receive_answers_from_client, args=(client)).start()
 
+    # Now we need to start sending questions
+    while True:
+        question, answer = create_random_question()
+        # Send the question to everyone
+        server_socket.send(question.encode())
+        print(question)
+        # We will empty the queue
+        answer_queue.empty()
+        for client in clients:
+            # We will start a thread for each client to receive the answer
+            threading.Thread(target=receive_answers_from_client, args=(client[0],)).start()
+        # Wait for a correct answer
+        timeout = 10  # Timeout in seconds
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            try:
+                client_answer = answer_queue.get(timeout=timeout)
+                if check_correct(client_answer[1], answer):
+                    print(f"Correct answer received from {client_answer[0]}: {client_answer[1]}")
+                    break
+            except queue.Empty:
+                # No answer received within the timeout period
+                print("No correct answer received within the timeout period")
+                break
 
 def start_tcp_server(server_socket, ip_address, port, game_ready_event):
     """
