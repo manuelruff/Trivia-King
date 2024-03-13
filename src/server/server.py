@@ -101,10 +101,9 @@ def create_random_question():
         tuple: A tuple containing the randomly selected question and its answer.
     """
     global QUESTIONS  # Access the global variable containing the questions
-    all_questions = list(QUESTIONS.keys())  # Get a list of all question IDs
-    rand_question_id = random.choice(all_questions)  # Choose a random question ID
-    chosen_question = QUESTIONS[rand_question_id]  # Get the chosen question
-    return (chosen_question, QUESTIONS[rand_question_id])  # Return the chosen question and its answer
+    all_questions = list(QUESTIONS.keys())  # Get a list of all question
+    rand_question = random.choice(all_questions)  # Choose a random question
+    return (rand_question, QUESTIONS[rand_question])  # Return the chosen question and its answer
 
 def check_correct(client_ans, ans):
     if ans == "T":
@@ -118,16 +117,23 @@ def check_correct(client_ans, ans):
     return False
 
 # Function to handle receiving answers from a client
-def receive_answers_from_client(client_socket):
+def receive_answers_from_client(client_socket, stop_event):
+    client_socket.settimeout(10)  # Set a timeout of 10 seconds for receiving data
     while True:
         try:
+            # Wait for incoming data (answer) or timeout
             answer = client_socket.recv(1024).decode().strip()
             if not answer:
                 break
             ANSWER_QUEUE.put((client_socket.getpeername(), answer))
+        except socket.timeout:
+            # Timeout occurred, exit the loop
+            break
         except Exception as e:
             print(f"Error receiving answer from {client_socket.getpeername()}: {e}")
             break
+    client_socket.settimeout(None)  # Reset the timeout to default (blocking mode)
+
 
 def start_game():
     message = f"Welcome to the {SERVER_NAME} server, where we are answering trivia questions\n"
@@ -180,7 +186,7 @@ def start_game():
                 break
     # Send the correct answer to everyone
     try:
-        message = f"{CLIENT_NAMES[client_answer[0]]} is correct! Alice wins!"
+        message = f"{CLIENT_NAMES[client_answer[0]]} is correct! {CLIENT_NAMES[client_answer[0]]} wins!"
         for client_socket, _ in CLIENTS:
             try:
                 client_socket.send(message.encode('utf-8'))
