@@ -234,7 +234,6 @@ def tcp_connect_clients():
     Args:
         game_ready_event (threading.Event): Event indicating if the game is ready to start.
     """
-    colored_print(f"TCP Server started, listening on IP address {IP_ADDRESS}, port {TCP_PORT}")
     #we wait for first connections
     # Accept incoming connections
     try:
@@ -270,7 +269,7 @@ def send_udp_broadcast():
     while not GAME_READY_EVENT.is_set():
         # Send the message via UDP broadcast
         UDP_SOCKET.sendto(message, ('255.255.255.255', 13117))
-        colored_print(f"UDP broadcast sent with server name: {server_name_bytes.decode().strip(chr(0))}, TCP port: {TCP_PORT}")
+        # colored_print(f"UDP broadcast sent with server name: {server_name_bytes.decode().strip(chr(0))}, TCP port: {TCP_PORT}")
 
         # Wait for one second before sending the next broadcast
         time.sleep(1)
@@ -289,8 +288,6 @@ def disconnect_clients():
     CLIENTS.clear()
     # Clear the dictionary of client names
     CLIENT_NAMES.clear()
-
-    colored_print("All clients disconnected.")
 def start_threads():
     # Start the TCP server in a separate thread
     TCP_THREAD = threading.Thread(target=tcp_connect_clients, args=())
@@ -309,6 +306,7 @@ def tcp_setup():
     TCP_SOCKET.bind((IP_ADDRESS, TCP_PORT))
     # Listen for incoming connections
     TCP_SOCKET.listen(10)
+    colored_print(f"TCP Server started, listening on IP address {IP_ADDRESS}, port {TCP_PORT}")
 def udp_setup():
     global UDP_SOCKET
     # Create a UDP socket
