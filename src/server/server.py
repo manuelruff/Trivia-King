@@ -1,3 +1,4 @@
+import csv
 import socket
 import threading
 import time
@@ -47,6 +48,79 @@ UDP_SOCKET=None
 GAME_READY_EVENT= threading.Event()  # Event to signal when the game is ready to start
 TCP_THREAD=None
 UDP_THREAD=None
+
+CSV_FILE = "players_data.csv"
+# Initialize user data dictionary
+USER_DATA = {}
+#function to collect data
+# Function to update user data dictionary
+def update_user_data(username, won):
+    if username in USER_DATA:
+        USER_DATA[username]["games_played"] += 1
+        if won:
+            USER_DATA[username]["games_won"] += 1
+    else:
+        USER_DATA[username] = {"games_played": 1, "games_won": int(won)}
+
+# Function to calculate the percentage of games won for each user
+def calculate_win_percentage():
+    for username, data in USER_DATA.items():
+        games_played = data["games_played"]
+        games_won = data["games_won"]
+        win_percentage = (games_won / games_played) * 100 if games_played > 0 else 0
+        USER_DATA[username]["win_percentage"] = win_percentage
+
+# Function to write user data to CSV file
+def write_user_data_to_csv():
+    try:
+        with open(CSV_FILE, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(["Username", "Games Played", "Games Won", "Win Percentage"])
+            # Sort user data by win percentage (from high to low)
+            sorted_user_data = sorted(USER_DATA.items(), key=lambda x: x[1]["win_percentage"], reverse=True)
+            for username, data in sorted_user_data:
+                writer.writerow([username, data["games_played"], data["games_won"], data["win_percentage"]])
+    except FileNotFoundError:
+        # If the file doesn't exist, create a new one
+        create_csv_file()
+
+# Function to create a new CSV file
+def create_csv_file():
+    with open(CSV_FILE, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["Username", "Games Played", "Games Won", "Win Percentage"])
+
+def print_leaderboard():
+    try:
+        with open("players_data.csv", mode='r') as file:
+            reader = csv.reader(file)
+            leaderboard = list(reader)
+
+            # Print the top 3 entries of the leaderboard
+            print("Leaderboard:")
+            print("{:<5} {:<20} {:<15} {:<15} {:<15}".format("Place", "Username", "Games Played", "Games Won", "Win Percentage"))
+            for i, row in enumerate(leaderboard[:3], start=1):
+                place = str(i) + "."
+                username = row[0]
+                games_played = row[1]
+                games_won = row[2]
+                win_percentage = row[3]
+
+                # Set color based on position
+                if i == 1:
+                    color = "\033[33m"  # Gold
+                elif i == 2:
+                    color = "\033[37m"  # Silver
+                elif i == 3:
+                    color = "\033[38;5;208m"  # Bronze
+                else:
+                    color = "\033[0m"  # White
+
+                print(f"{color}{place:<5} {username:<20} {games_played:<15} {games_won:<15} {win_percentage:<15}\033[0m")
+    except FileNotFoundError:
+        print("No leaderboard data available.")
+
+######################################################
 
 def colored_print(text, color='\033[36m'):
     print(color + text + '\033[0m')
