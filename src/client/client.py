@@ -13,6 +13,7 @@ TCP_SOCKET = None
 stop_input_event = threading.Event()
 NAMES = ["Luffy", "Zoro", "Nami", "Usopp", "Sanji", "Chopper", "Robin", "Franky", "Brook", "Monica", "Ross", "Rachel", "Chandler", "Joey", "Phoebe"]
 USER_INPUT=""
+ANS_THREAD= None
 def colored_print(text, color='\033[92m'):
     print(color + text + '\033[0m')
 
@@ -57,8 +58,8 @@ def login(conn):
 def handle_enough():
     colored_print("Received 'enough' from the server. Stopping input.")
     stop_input_event.set()
-    os.kill(os.getpid(), signal.SIGINT)
-    handle_question()
+    #ANS_THREAD.terminate()
+    # handle_question()
 def handle_winner():
     colored_print("Congratulations message received. Exiting.")
     raise socket.error  # Or handle the winning case as needed
@@ -97,7 +98,7 @@ def handle_question():
     except Exception as e:
         colored_print(f"Error sending input to server: {e}")
 def handle_server_messages():
-    global TCP_SOCKET
+    global TCP_SOCKET,ANS_THREAD
     while True:
         try:
             msg = TCP_SOCKET.recv(BUFFER_SIZE).decode("utf-8")
@@ -122,8 +123,10 @@ def handle_server_messages():
             else:
                 colored_print(msg)
                 # if the message is the question
-                ans_thread = threading.Thread(target=handle_question, args=())
-                ans_thread.start()
+                ANS_THREAD = threading.Thread(target=handle_question, args=())
+                ANS_THREAD.start()
+                # ans_thread = threading.Thread(target=handle_question, args=())
+                # ans_thread.start()
 
 
         except socket.error:
