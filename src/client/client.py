@@ -17,7 +17,6 @@ ANS_THREAD= None
 CLIENT_NAME = None
 def colored_print(text, color='\033[92m'):
     print(color + text + '\033[0m')
-
 def listen_for_offers():
     colored_print("Client started, listening for offer requests...")
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp_socket:
@@ -36,7 +35,6 @@ def listen_for_offers():
                     tcp_port = int.from_bytes(data[-2:], byteorder='big')
                     colored_print(f"Received offer from server \"{server_name}\" at address {addr[0]}, attempting to connect...")
                     return addr[0], tcp_port
-
 def connect_to_server(server_ip, tcp_port):
     global TCP_SOCKET  # Declare TCP_SOCKET as a global variable
     TCP_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -48,7 +46,6 @@ def connect_to_server(server_ip, tcp_port):
         colored_print("Successful login name sent to server")
     except socket.error as e:
         colored_print(f"Error connecting to the server: {e}")
-
 def login(conn):
     global CLIENT_NAME
     if CLIENT_NAME is None:
@@ -59,15 +56,10 @@ def login(conn):
             colored_print(f"Error during login: {e}")
     else:
         conn.send(CLIENT_NAME.encode())
-
-
 def handle_enough():
-    # colored_print("Received 'enough' from the server. Stopping input.")
     stop_input_event.set()
-    #ANS_THREAD.terminate()
-    # handle_question()
 def handle_winner():
-    colored_print("Congratulations message received. Exiting.")
+    # colored_print("Congratulations message received. Exiting.")
     raise socket.error  # Or handle the winning case as needed
 def get_user_input():
     """Function to get user input in a separate thread."""
@@ -75,12 +67,8 @@ def get_user_input():
     # Read input non-blockingly
     while not stop_input_event.is_set():
         try:
-        #ready, _, _ = select.select([sys.stdin], [], [], 10)  # Check if input is ready
-            # print("this is the ready input: ",ready)
-            #colored_print("please enter your answer:\n")
             USER_INPUT = input()
             stop_input_event.set()  # Signal to stop user input after colored_printing the message
-            #USER_INPUT = input("Please enter your answer: \n")
             return
         except:
             stop_input_event.set()  # Signal to stop user input after colored_printing the message
@@ -95,13 +83,12 @@ def handle_question():
     # Start the thread to get user input
     user_input_thread = threading.Thread(target=get_user_input)
     user_input_thread.start()
-
-    # Wait for the stop signal or until user input is received
-    stop_input_event.wait()
+    # Wait until user input is received
     user_input_thread.join()
     try:
         #send user input to the server
-        TCP_SOCKET.send(USER_INPUT.encode())
+        if(USER_INPUT!=""):
+            TCP_SOCKET.send(USER_INPUT.encode())
     except Exception as e:
         colored_print(f"Error sending input to server: {e}")
 def handle_server_messages():
@@ -118,22 +105,19 @@ def handle_server_messages():
 
             if "Welcome" in msg:
                 colored_print(msg)
-                continue
             elif "enough" in msg:
                 # colored_print(msg)
                 handle_enough()
-                continue
+            elif "is correct!" in msg:
+                colored_print(msg)
             elif "Congratulations to the winner:" in msg:
                 colored_print(msg)
                 handle_winner()
-                continue
             else:
                 colored_print(msg)
                 # if the message is the question
                 ANS_THREAD = threading.Thread(target=handle_question, args=())
                 ANS_THREAD.start()
-                # ans_thread = threading.Thread(target=handle_question, args=())
-                # ans_thread.start()
 
 
         except socket.error:

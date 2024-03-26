@@ -101,7 +101,7 @@ def create_random_question():
     rand_question = random.choice(all_questions)  # Choose a random question
     return (rand_question, QUESTIONS[rand_question])  # Return the chosen question and its answer
 def check_correct(client_ans, ans):
-    if ans == "T":
+    if ans:
         if client_ans in ('t', '1', 'y'):
             return True
         else:
