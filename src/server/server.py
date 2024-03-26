@@ -55,6 +55,7 @@ USER_DATA = {}
 #function to collect data
 # Function to update user data dictionary
 def update_user_data(username, won):
+    global USER_DATA
     if username in USER_DATA:
         USER_DATA[username]["games_played"] += 1
         if won:
@@ -64,6 +65,7 @@ def update_user_data(username, won):
 
 # Function to calculate the percentage of games won for each user
 def calculate_win_percentage():
+    global USER_DATA
     for username, data in USER_DATA.items():
         games_played = data["games_played"]
         games_won = data["games_won"]
@@ -72,6 +74,7 @@ def calculate_win_percentage():
 
 # Function to write user data to CSV file
 def write_user_data_to_csv():
+    global USER_DATA
     try:
         with open(CSV_FILE, mode='w', newline='') as file:
             writer = csv.writer(file)
@@ -84,6 +87,7 @@ def write_user_data_to_csv():
         print("Error writing user data to CSV file.")
 
 def read_from_csv():
+    global USER_DATA
     try:
         with open("players_data.csv", mode='r') as file:
             reader = csv.reader(file)
@@ -129,6 +133,8 @@ def print_leaderboard():
     except FileNotFoundError:
         print("No leaderboard data available.")
 
+def update_csv_and_send_leaderboard():
+    print("yalla")
 ######################################################
 
 def colored_print(text, color='\033[36m'):
@@ -355,7 +361,8 @@ def disconnect_clients():
             client_socket.close()
         except Exception as e:
             colored_print(f"Error closing client socket: {e}")
-
+    # update the csv file
+    update_csv_and_send_leaderboard()
     # Clear the list of connected clients
     CLIENTS.clear()
     # Clear the dictionary of client names
@@ -406,7 +413,9 @@ def udp_setup():
         colored_print(f"Error enabling broadcast for UDP socket: {e}")
         exit()
 def main():
-    global IP_ADDRESS, TCP_PORT, TCP_SOCKET, GAME_READY_EVENT, TCP_THREAD, UDP_THREAD,UDP_SOCKET
+    global IP_ADDRESS, TCP_PORT, TCP_SOCKET, GAME_READY_EVENT, TCP_THREAD, UDP_THREAD,UDP_SOCKET, USER_DATA
+    # Read user data from CSV file
+    read_from_csv()
     # Configuration
     IP_ADDRESS = get_local_ip()  # IP address to listen on
     if IP_ADDRESS is None:
