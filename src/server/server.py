@@ -101,8 +101,6 @@ def create_random_question():
     rand_question = random.choice(all_questions)  # Choose a random question
     return (rand_question, QUESTIONS[rand_question])  # Return the chosen question and its answer
 def check_correct(client_ans, ans):
-    # for the tests
-    # return True
     if ans == "T":
         if client_ans in ('t', '1', 'y'):
             return True
@@ -192,11 +190,18 @@ def start_game():
         # Wait for a correct answer
         timeout = 10  # Timeout in seconds
         start_time = time.time()
+        # we check how manyt clients sent an answare and stop when they all sent it
+        client_count=len(CLIENTS)
         while time.time() - start_time < timeout:
             try:
                 client_answer = ANSWER_QUEUE.get(timeout=timeout)
                 if check_correct(client_answer[1], answer):
                     game_finished = True
+                    break
+                else:
+                    client_count-=1
+                # all the clients sent a wring answare
+                if client_count==0:
                     break
             except queue.Empty:
                 # No answer received within the timeout period
