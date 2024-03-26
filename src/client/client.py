@@ -129,6 +129,7 @@ def handle_server_messages():
 def main():
     global ANS_THREAD
     while True:
+        ANS_THREAD=None
         server_ip, tcp_port = listen_for_offers()
         connect_to_server(server_ip, tcp_port)
         # Create and start thread for handling server messages
