@@ -133,8 +133,6 @@ def handle_server_messages():
             return
 
 
-
-
 def on_key_event(event):
     if stop_input_event.is_set():
         return

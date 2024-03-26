@@ -142,9 +142,6 @@ def receive_answers_from_client(client_socket):
         pass
     except Exception as e:
         return
-        # colored_print(f"Error receiving answer from {client_socket.getpeername()}: {e}")
-    # finally:
-    #     client_socket.settimeout(None)  # Reset the timeout to default (blocking mode)
 def start_game():
     message = f"Welcome to the {SERVER_NAME} server, where we are answering trivia questions\n"
     count = 1
@@ -234,19 +231,18 @@ def tcp_connect_clients():
         game_ready_event (threading.Event): Event indicating if the game is ready to start.
     """
     global TCP_SOCKET
-    # Set the timeout for accepting new connections
-    TCP_SOCKET.settimeout(10)
-    #we wait for first connections
-    # Accept incoming connections
-    try:
-        client_connect()
-    except :
-        colored_print("unable to connect to client")
-    # Accept and handle incoming connections for up to 10 seconds
+    count_clients=0
     while True:
         try:
             client_connect()
+            # Set the timeout for accepting new connections
+            TCP_SOCKET.settimeout(10)
+            count_clients+=1
         except socket.timeout:
+            # if no clients connected we continue o wait
+            if count_clients==0:
+                continue
+            # If at least one client has connected, break the loop and proceed with the game
             break
     # Cancel the timeout after the loop
     TCP_SOCKET.settimeout(None)
