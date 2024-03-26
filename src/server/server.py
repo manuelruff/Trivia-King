@@ -128,11 +128,7 @@ def handle_tcp_connection(client_socket, game_ready_event):
     game_ready_event.wait()
     # Cancel the timeout after the loop
     TCP_SOCKET.settimeout(None)
-    # Your game logic goes here
-    # Once the game is ready, you can proceed with the game
-    start_game()
-    # Close the connection
-    client_socket.close()
+
 def receive_answers_from_client(client_socket):
     client_socket.settimeout(10)  # Set a timeout of 10 seconds for receiving data
     try:
@@ -148,9 +144,10 @@ def receive_answers_from_client(client_socket):
             colored_print(f"Error sending message to {client_socket.getpeername()}: {e}")
         pass
     except Exception as e:
-        colored_print(f"Error receiving answer from {client_socket.getpeername()}: {e}")
-    finally:
-        client_socket.settimeout(None)  # Reset the timeout to default (blocking mode)
+        return
+        # colored_print(f"Error receiving answer from {client_socket.getpeername()}: {e}")
+    # finally:
+    #     client_socket.settimeout(None)  # Reset the timeout to default (blocking mode)
 def start_game():
     message = f"Welcome to the {SERVER_NAME} server, where we are answering trivia questions\n"
     count = 1
@@ -215,16 +212,16 @@ def start_game():
             try:
                 client_socket.send(message1.encode('utf-8'))
                 client_socket.send(message2.encode('utf-8'))
-                colored_print("Game over,sending out offer requests...")
-                # finish the game
-                GAME_READY_EVENT.clear()
-                # disconnecting all clients
-                disconnect_clients()
-                #send udp broadcast again
-                start_threads()
-
             except Exception as e:
                 colored_print(f"Error sending message to {client_socket.getpeername()}: {e}")
+
+        colored_print("Game over,sending out offer requests...")
+        # disconnecting all clients
+        disconnect_clients()
+        # finish the game
+        GAME_READY_EVENT.clear()
+        # send udp broadcast again
+        start_threads()
     except Exception as e:
         colored_print(f"Error sending correct answer to clients: {e}")
 def client_connect():
@@ -239,14 +236,15 @@ def tcp_connect_clients():
     Args:
         game_ready_event (threading.Event): Event indicating if the game is ready to start.
     """
+    global TCP_SOCKET
+    # Set the timeout for accepting new connections
+    TCP_SOCKET.settimeout(10)
     #we wait for first connections
     # Accept incoming connections
     try:
         client_connect()
     except :
         colored_print("unable to connect to client")
-    # Set the timeout for accepting new connections
-    TCP_SOCKET.settimeout(10)
     # Accept and handle incoming connections for up to 10 seconds
     while True:
         try:
@@ -258,6 +256,8 @@ def tcp_connect_clients():
     colored_print("Game ready!")
     # If no new clients joined during the last 10 seconds, start the game
     GAME_READY_EVENT.set()
+    # Once the game is ready, you can proceed with the game
+    start_game()
 def send_udp_broadcast():
     """
     Function to send UDP broadcast with custom message format.
