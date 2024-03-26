@@ -133,7 +133,7 @@ def print_leaderboard():
     except FileNotFoundError:
         print("No leaderboard data available.")
 
-def update_csv_and_send_leaderboard():
+def update_csv_and_send_leaderboard(winner_name):
     print("yalla")
 ######################################################
 
@@ -289,6 +289,8 @@ def start_game():
     send_message_to_clients(message1,False)
     send_message_to_clients(message2,False)
     colored_print("Game over,sending out offer requests...")
+    # update the csv file
+    update_csv_and_send_leaderboard(CLIENT_NAMES[client_answer[0]])
     # disconnecting all clients
     disconnect_clients()
     # finish the game
@@ -361,8 +363,6 @@ def disconnect_clients():
             client_socket.close()
         except Exception as e:
             colored_print(f"Error closing client socket: {e}")
-    # update the csv file
-    update_csv_and_send_leaderboard()
     # Clear the list of connected clients
     CLIENTS.clear()
     # Clear the dictionary of client names
