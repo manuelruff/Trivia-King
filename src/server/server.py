@@ -91,7 +91,9 @@ def read_from_csv():
             leaderboard = list(reader)
 
             # Populate USER_DATA dictionary
-            for row in leaderboard:
+            for i,row in enumerate(leaderboard):
+                if(i==0):
+                    continue
                 username = row[0]
                 games_played = int(row[1])
                 games_won = int(row[2])
