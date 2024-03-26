@@ -1,11 +1,7 @@
-import signal
 import socket
 import threading
 import random
-import select
 import sys
-import os
-import multiprocessing
 
 # Constants
 UDP_PORT = 13117
@@ -67,7 +63,7 @@ def get_user_input():
     global USER_INPUT
     # Read input non-blockingly
     while not stop_input_event.is_set():
-        USER_INPUT = sys.stdin.readline()
+        USER_INPUT = input()
         if USER_INPUT!="":
             return
     return
@@ -80,6 +76,7 @@ def handle_question():
     user_input_thread.start()
     # Wait until user input is received
     user_input_thread.join(10)
+    stop_input_event.set()
     #send user input to the server
     if(USER_INPUT!="" and not stop_input_event.is_set()):
         try:
@@ -87,7 +84,7 @@ def handle_question():
         except Exception as e:
             colored_print(f"Error sending input to server: {e}")
 def handle_server_messages():
-    global TCP_SOCKET,ANS_THREAD
+    global TCP_SOCKET,ANS_THREAD,GAME_WON
     while True:
         try:
             msg = TCP_SOCKET.recv(BUFFER_SIZE).decode("utf-8")
@@ -131,7 +128,7 @@ def main():
         connect_to_server(server_ip, tcp_port)
         # Create and start thread for handling server messages
         handle_server_messages()
-        if ANS_THREAD is not None:
+        if (ANS_THREAD is not None):
             if ANS_THREAD.is_alive():
                 ANS_THREAD.join()
 
