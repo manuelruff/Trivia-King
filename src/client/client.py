@@ -136,22 +136,17 @@ def handle_server_messages():
             # Handle different cases based on message content
 
             if "Welcome" in msg:
-                print("im in welcome")
                 colored_print(msg)
                 continue
             elif "enough" in msg:
-                print("im in enough")
                 colored_print(msg)
                 handle_enough()
                 continue
             elif "Congratulations to the winner:" in msg:
-                print("im in winner")
                 colored_print(msg)
                 handle_winner()
                 continue
             else:
-                print("im in question")
-                print(stop_input_event.is_set())
                 colored_print(msg)
                 # if the message is the question
                 ans_thread = threading.Thread(target=handle_question(), args=())
