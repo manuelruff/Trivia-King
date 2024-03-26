@@ -14,6 +14,7 @@ stop_input_event = threading.Event()
 NAMES = ["Luffy", "Zoro", "Nami", "Usopp", "Sanji", "Chopper", "Robin", "Franky", "Brook", "Monica", "Ross", "Rachel", "Chandler", "Joey", "Phoebe"]
 USER_INPUT=""
 ANS_THREAD= None
+CLIENT_NAME = None
 def colored_print(text, color='\033[92m'):
     print(color + text + '\033[0m')
 
@@ -49,11 +50,16 @@ def connect_to_server(server_ip, tcp_port):
         colored_print(f"Error connecting to the server: {e}")
 
 def login(conn):
-    try:
-        default_name = random.choice(NAMES)
-        conn.send(default_name.encode())
-    except Exception as e:
-        colored_print(f"Error during login: {e}")
+    global CLIENT_NAME
+    if CLIENT_NAME is None:
+        try:
+            CLIENT_NAME = random.choice(NAMES)
+            conn.send(CLIENT_NAME.encode())
+        except Exception as e:
+            colored_print(f"Error during login: {e}")
+    else:
+        conn.send(CLIENT_NAME.encode())
+
 
 def handle_enough():
     # colored_print("Received 'enough' from the server. Stopping input.")
