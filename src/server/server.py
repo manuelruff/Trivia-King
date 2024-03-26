@@ -142,41 +142,37 @@ def receive_answers_from_client(client_socket):
         pass
     except Exception as e:
         return
-def start_game():
+
+def send_message_to_clients(message,print_message=True):
+    for client_socket, _ in CLIENTS:
+        try:
+            client_socket.send(message.encode('utf-8'))
+        except Exception as e:
+            colored_print(f"Error sending message to {client_socket.getpeername()}: {e}")
+    if print_message:
+        colored_print(message)
+def send_start_game_message():
     message = f"Welcome to the {SERVER_NAME} server, where we are answering trivia questions\n"
     count = 1
     for client in CLIENTS:
         message += f"Player {count}: {CLIENT_NAMES[client[1]]} \n"
         count += 1
-    try:
-        for client_socket, _ in CLIENTS:
-            try:
-                client_socket.send(message.encode('utf-8'))
-            except Exception as e:
-                colored_print(f"Error sending message to {client_socket.getpeername()}: {e}")
-        colored_print(message)
-    except Exception as e:
-        colored_print(f"Error sending message to clients: {e}")
+    send_message_to_clients(message)
 
+def start_game():
+    # Send a message to all clients that the game is starting
+    send_start_game_message()
     # flag for finishing game
     game_finished = False
     # Now we need to start sending questions
     while not game_finished:
         question, answer = create_random_question()
         # Send the question to everyone
-        try:
-            for client_socket, _ in CLIENTS:
-                try:
-                    client_socket.send(question.encode('utf-8'))
-                except Exception as e:
-                    colored_print(f"Error sending message to {client_socket.getpeername()}: {e}")
-            colored_print(question)
-        except Exception as e:
-            colored_print(f"Error sending question to clients: {e}")
+        send_message_to_clients(question)
         # We will empty the queue
         ANSWER_QUEUE.empty()
+        # We will start a thread for each client to receive the answer
         for client in CLIENTS:
-            # We will start a thread for each client to receive the answer
             threading.Thread(target=receive_answers_from_client, args=(client[0],)).start()
         # Wait for a correct answer
         timeout = 10  # Timeout in seconds
@@ -199,25 +195,17 @@ def start_game():
                 colored_print("No correct answer received within the timeout period")
                 break
     # Send the correct answer to everyone
-    try:
-        message1 = f"{CLIENT_NAMES[client_answer[0]]} is correct! {CLIENT_NAMES[client_answer[0]]} wins!\n"
-        message2= f"Game over!\nCongratulations to the winner: {CLIENT_NAMES[client_answer[0]]}\n"
-        for client_socket, _ in CLIENTS:
-            try:
-                client_socket.send(message1.encode('utf-8'))
-                client_socket.send(message2.encode('utf-8'))
-            except Exception as e:
-                colored_print(f"Error sending message to {client_socket.getpeername()}: {e}")
-
-        colored_print("Game over,sending out offer requests...")
-        # disconnecting all clients
-        disconnect_clients()
-        # finish the game
-        GAME_READY_EVENT.clear()
-        # send udp broadcast again
-        start_threads()
-    except Exception as e:
-        colored_print(f"Error sending correct answer to clients: {e}")
+    message1 = f"{CLIENT_NAMES[client_answer[0]]} is correct! {CLIENT_NAMES[client_answer[0]]} wins!\n"
+    message2= f"Game over!\nCongratulations to the winner: {CLIENT_NAMES[client_answer[0]]}\n"
+    send_message_to_clients(message1,False)
+    send_message_to_clients(message2,False)
+    colored_print("Game over,sending out offer requests...")
+    # disconnecting all clients
+    disconnect_clients()
+    # finish the game
+    GAME_READY_EVENT.clear()
+    # send udp broadcast again
+    start_threads()
 def client_connect():
     # Accept incoming connection
     client_socket, client_address = TCP_SOCKET.accept()
@@ -265,10 +253,13 @@ def send_udp_broadcast():
     message = magic_cookie + message_type + server_name_bytes + server_port_bytes
 
     while not GAME_READY_EVENT.is_set():
-        # Send the message via UDP broadcast
-        UDP_SOCKET.sendto(message, ('255.255.255.255', 13117))
-        # colored_print(f"UDP broadcast sent with server name: {server_name_bytes.decode().strip(chr(0))}, TCP port: {TCP_PORT}")
-
+        try:
+            # Send the message via UDP broadcast
+            UDP_SOCKET.sendto(message, ('255.255.255.255', 13117))
+            # colored_print(f"UDP broadcast sent with server name: {server_name_bytes.decode().strip(chr(0))}, TCP port: {TCP_PORT}")
+        except Exception as e:
+            colored_print(f"Error sending UDP broadcast: {e}")
+            # Handle the error as needed (e.g., retry, exit, etc.)
         # Wait for one second before sending the next broadcast
         time.sleep(1)
 def disconnect_clients():
@@ -296,21 +287,41 @@ def start_threads():
     UDP_THREAD.start()
 def tcp_setup():
     global IP_ADDRESS, TCP_PORT, TCP_SOCKET
-    # Find a free port for TCP server
-    TCP_PORT = find_free_port(20000)
+    try:
+        # Find a free port for TCP server
+        TCP_PORT = find_free_port(20000)
+    except OSError:
+        colored_print("Error finding a free port for the TCP server")
+        exit()
     # Create a TCP socket
     TCP_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # Bind the socket to the specified IP address and port
-    TCP_SOCKET.bind((IP_ADDRESS, TCP_PORT))
-    # Listen for incoming connections
-    TCP_SOCKET.listen(10)
+    try:
+        # Bind the socket to the specified IP address and port
+        TCP_SOCKET.bind((IP_ADDRESS, TCP_PORT))
+    except Exception as e:
+        colored_print(f"Error binding TCP socket to IP address {IP_ADDRESS}, port {TCP_PORT}")
+        exit()
+    try:
+        # Listen for incoming connections
+        TCP_SOCKET.listen(10)
+    except Exception as e:
+        colored_print("Error listening for incoming connections")
+        exit()
     colored_print(f"TCP Server started, listening on IP address {IP_ADDRESS}, port {TCP_PORT}")
 def udp_setup():
     global UDP_SOCKET
-    # Create a UDP socket
-    UDP_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    # Enable broadcast
-    UDP_SOCKET.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    try:
+        # Create a UDP socket
+        UDP_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    except Exception as e:
+        colored_print(f"Error creating UDP socket: {e}")
+        exit()
+    try:
+        # Enable broadcast
+        UDP_SOCKET.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    except Exception as e:
+        colored_print(f"Error enabling broadcast for UDP socket: {e}")
+        exit()
 def main():
     global IP_ADDRESS, TCP_PORT, TCP_SOCKET, GAME_READY_EVENT, TCP_THREAD, UDP_THREAD,UDP_SOCKET
     # Configuration
