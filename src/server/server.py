@@ -56,9 +56,15 @@ USER_DATA = {}
 # Function to update user data dictionary
 def update_user_data(username):
     global USER_DATA
-    for name in CLIENT_NAMES.keys():
-        USER_DATA[name]["games_played"] += 1
-    USER_DATA[username]["games_won"] += 1
+    for name in CLIENT_NAMES.values():
+        if name in USER_DATA:
+            USER_DATA[name]["games_played"] += 1
+        else:
+            USER_DATA[name] = {"games_played": 1, "games_won": 0, "win_percentage": 0}  # Create new key if it doesn't exist
+    if username in USER_DATA:
+        USER_DATA[username]["games_won"] += 1
+    else:
+        USER_DATA[username] = {"games_played": 1, "games_won": 1, "win_percentage": 100}  # Create new key if it doesn't exist
 
 # Function to calculate the percentage of games won for each user
 def calculate_win_percentage():
@@ -106,6 +112,7 @@ def get_leaderboard():
     try:
         with open("players_data.csv", mode='r') as file:
             reader = csv.reader(file)
+            next(reader)
             leaderboard = list(reader)
 
             # Prepare the leaderboard string
