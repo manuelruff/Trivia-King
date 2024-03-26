@@ -43,38 +43,64 @@ QUESTIONS = {
 }
 SERVER_NAME = "KaKi"
 ANSWER_QUEUE = queue.Queue()
-TCP_SOCKET=None
-UDP_SOCKET=None
-GAME_READY_EVENT= threading.Event()  # Event to signal when the game is ready to start
-TCP_THREAD=None
-UDP_THREAD=None
+TCP_SOCKET = None
+UDP_SOCKET = None
+GAME_READY_EVENT = threading.Event()  # Event to signal when the game is ready to start
+TCP_THREAD = None
+UDP_THREAD = None
 
 CSV_FILE = "players_data.csv"
 # Initialize user data dictionary
 USER_DATA = {}
-#function to collect data
+
+
+# function to collect data
 # Function to update user data dictionary
 def update_user_data(username):
+    """
+    This function takes a username as input and updates the USER_DATA dictionary with the corresponding
+    information about the games played and games won by that user. If the user is already present in the
+    dictionary, their games played count is incremented, and if not, a new entry is created for the user.
+
+    @param username: (str): The username of the user who's the winner
+    """
     global USER_DATA
     for name in CLIENT_NAMES.values():
         if name in USER_DATA:
             USER_DATA[name]["games_played"] += 1
         else:
-            USER_DATA[name] = {"games_played": 1, "games_won": 0, "win_percentage": 0}  # Create new key if it doesn't exist
+            USER_DATA[name] = {"games_played": 1, "games_won": 0,
+                               "win_percentage": 0}  # Create new key if it doesn't exist
     if username in USER_DATA:
         USER_DATA[username]["games_won"] += 1
     else:
-        USER_DATA[username] = {"games_played": 1, "games_won": 1, "win_percentage": 100}  # Create new key if it doesn't exist
+        USER_DATA[username] = {"games_played": 1, "games_won": 1,
+                               "win_percentage": 100}  # Create new key if it doesn't exist
+
+
 # Function to calculate the percentage of games won for each user
 def calculate_win_percentage():
+    """
+    This function iterates through the USER_DATA dictionary, calculates the win percentage
+    for each user based on their games played and games won, and updates the win percentage
+    in the USER_DATA dictionary.
+    """
     global USER_DATA
     for username, data in USER_DATA.items():
         games_played = data["games_played"]
         games_won = data["games_won"]
         win_percentage = (games_won / games_played) * 100 if games_played > 0 else 0
         USER_DATA[username]["win_percentage"] = win_percentage
+
+
 # Function to write user data to CSV file
 def write_user_data_to_csv():
+    """
+    This function attempts to write the user data to a CSV file specified by CSV_FILE.
+    The user data includes information about each user's username, games played, games won,
+    and win percentage. The user data is sorted by win percentage in descending order before
+    writing to the CSV file.
+    """
     global USER_DATA
     try:
         with open(CSV_FILE, mode='w', newline='') as file:
@@ -86,24 +112,41 @@ def write_user_data_to_csv():
                 writer.writerow([username, data["games_played"], data["games_won"], data["win_percentage"]])
     except FileNotFoundError:
         print("Error writing user data to CSV file.")
+
+
 def read_from_csv():
+    """
+    This function reads user data from a CSV file named "players_data.csv" and populates
+    the USER_DATA dictionary with the retrieved information. The CSV file is expected to
+    have columns for username, games played, games won, and win percentage.
+    """
     global USER_DATA
     try:
         with open("players_data.csv", mode='r') as file:
             reader = csv.reader(file)
             leaderboard = list(reader)
             # Populate USER_DATA dictionary
-            for i,row in enumerate(leaderboard):
-                if(i==0):
+            for i, row in enumerate(leaderboard):
+                if (i == 0):
                     continue
                 username = row[0]
                 games_played = int(row[1])
                 games_won = int(row[2])
                 win_percentage = float(row[3])
-                USER_DATA[username] = {"games_played": games_played, "games_won": games_won, "win_percentage": win_percentage}
+                USER_DATA[username] = {"games_played": games_played, "games_won": games_won,
+                                       "win_percentage": win_percentage}
     except FileNotFoundError:
         print("No leaderboard data available.")
+
+
 def get_leaderboard():
+    """
+    This function reads the player data from a CSV file named "players_data.csv",
+    retrieves the top 3 players based on win percentage, and formats their information
+    into a string representing the leaderboard. Each player's information includes their
+    username, number of games played, number of games won, and win percentage.
+    @return: str: A string representing the top 3 players on the leaderboard.
+    """
     leaderboard_string = ""
     try:
         with open("players_data.csv", mode='r') as file:
@@ -113,7 +156,8 @@ def get_leaderboard():
 
             # Prepare the leaderboard string
             leaderboard_string += "Leaderboard:\n"
-            leaderboard_string += "{:<5} {:<20} {:<15} {:<15} {:<15}\n".format("Place", "Username", "Games Played", "Games Won", "Win Percentage")
+            leaderboard_string += "{:<5} {:<20} {:<15} {:<15} {:<15}\n".format("Place", "Username", "Games Played",
+                                                                               "Games Won", "Win Percentage")
             for i, row in enumerate(leaderboard[:3], start=1):
                 place = str(i) + "."
                 username = row[0]
@@ -136,6 +180,9 @@ def get_leaderboard():
         leaderboard_string += "No leaderboard data available.\n"
 
     return leaderboard_string
+
+
+# the function that responsible to call all the CSV necessary functions
 def update_csv_and_send_leaderboard(winner_name):
     update_user_data(winner_name)
     calculate_win_percentage()
@@ -143,10 +190,14 @@ def update_csv_and_send_leaderboard(winner_name):
     send_message_to_clients(leaderboard_string)
     # Write updated user data to CSV file
     write_user_data_to_csv()
+
+
 ######################################################
 
 def colored_print(text, color='\033[36m'):
     print(color + text + '\033[0m')
+
+
 def find_free_port(start_port, max_attempts=100):
     """
     Function to find a free port within a specified range of attempts.
@@ -169,6 +220,8 @@ def find_free_port(start_port, max_attempts=100):
             pass
     # If no free port is found within the specified range of attempts, raise an OSError
     raise OSError("Unable to find a free port")
+
+
 def get_local_ip():
     """
     Get the local IP address of the computer.
@@ -184,6 +237,8 @@ def get_local_ip():
             colored_print(f"Error getting local IP address: {e}")
             local_ip = None
     return local_ip
+
+
 def create_random_question():
     """
     Function to randomly select a question from the available questions.
@@ -194,6 +249,8 @@ def create_random_question():
     all_questions = list(QUESTIONS.keys())  # Get a list of all question
     rand_question = random.choice(all_questions)  # Choose a random question
     return (rand_question, QUESTIONS[rand_question])  # Return the chosen question and its answer
+
+
 def check_correct(client_ans, ans):
     """
     Function to check if the client's answer is correct.
@@ -214,6 +271,8 @@ def check_correct(client_ans, ans):
         if client_ans in ("FN0fn"):
             return True
     return False
+
+
 def handle_tcp_connection(client_socket):
     """
     Function to handle a TCP connection with a client.
@@ -228,6 +287,8 @@ def handle_tcp_connection(client_socket):
     colored_print(f"Client {CLIENT_NAMES[client_socket.getpeername()]} has joined the game")
     # Wait for the game to be ready
     GAME_READY_EVENT.wait()
+
+
 def receive_answers_from_client(client_socket):
     """
     Function to receive answers from a client.
@@ -251,7 +312,9 @@ def receive_answers_from_client(client_socket):
         pass
     except Exception as e:
         return
-def send_message_to_clients(message,print_message=True):
+
+
+def send_message_to_clients(message, print_message=True):
     """
     Function to send a message to all connected clients.
     :param message: message to print
@@ -266,6 +329,8 @@ def send_message_to_clients(message,print_message=True):
     # Print the message if specified
     if print_message:
         colored_print(message)
+
+
 def send_start_game_message():
     message = f"Welcome to the {SERVER_NAME} server, where we are answering trivia questions\n"
     count = 1
@@ -274,6 +339,8 @@ def send_start_game_message():
         message += f"Player {count}: {CLIENT_NAMES[client[1]]} \n"
         count += 1
     send_message_to_clients(message)
+
+
 def start_game():
     """
     Function to start the trivia game.
@@ -297,7 +364,7 @@ def start_game():
         timeout = 10  # Timeout in seconds
         start_time = time.time()
         # we check how manyt clients sent an answare and stop when they all sent it
-        client_count=len(CLIENTS)
+        client_count = len(CLIENTS)
         while time.time() - start_time < timeout:
             try:
                 # Get the client answer from the queue
@@ -309,9 +376,9 @@ def start_game():
                     break
                 else:
                     # we decrement the count of clients that sent an answer, when 0 we can continue to next question
-                    client_count-=1
+                    client_count -= 1
                 # all the clients sent a wring answare
-                if client_count==0:
+                if client_count == 0:
                     break
             # Handle the case when no answer is received within the timeout period
             except queue.Empty:
@@ -320,9 +387,9 @@ def start_game():
                 break
     # Send the correct answer and winner to everyone
     message1 = f"{CLIENT_NAMES[client_answer[0]]} is correct! {CLIENT_NAMES[client_answer[0]]} wins!\n"
-    message2= f"Game over!\nCongratulations to the winner: {CLIENT_NAMES[client_answer[0]]}\n"
-    send_message_to_clients(message1,False)
-    send_message_to_clients(message2,False)
+    message2 = f"Game over!\nCongratulations to the winner: {CLIENT_NAMES[client_answer[0]]}\n"
+    send_message_to_clients(message1, False)
+    send_message_to_clients(message2, False)
     colored_print("Game over,sending out offer requests...")
     # update the csv file
     update_csv_and_send_leaderboard(CLIENT_NAMES[client_answer[0]])
@@ -332,19 +399,23 @@ def start_game():
     GAME_READY_EVENT.clear()
     # send udp broadcast again
     start_threads()
+
+
 def client_connect():
     # Accept incoming connection
     client_socket, client_address = TCP_SOCKET.accept()
     colored_print(f"New connection from {client_address}")
     # Start a new thread to handle the connection
     threading.Thread(target=handle_tcp_connection, args=(client_socket)).start()
+
+
 def tcp_connect_clients():
     """
     Function to start getting connections
     """
     global TCP_SOCKET, GAME_READY_EVENT
     # we need to wait for at least one client to connect
-    count_clients=0
+    count_clients = 0
     # Wait for clients to connect
     while True:
         try:
@@ -352,10 +423,10 @@ def tcp_connect_clients():
             # Set the timeout for accepting new connections,after each connection we will wait for 10 seconds
             TCP_SOCKET.settimeout(10)
             # if a client connected we increment the count
-            count_clients+=1
+            count_clients += 1
         except socket.timeout:
             # if no clients connected we continue to wait for at least one client
-            if count_clients==0:
+            if count_clients == 0:
                 continue
             # If at least one client has connected, break the loop and proceed with the game
             break
@@ -365,6 +436,8 @@ def tcp_connect_clients():
     # If no new clients joined during the last 10 seconds, start the game
     GAME_READY_EVENT.set()
     start_game()
+
+
 def send_udp_broadcast():
     """
     Function to send UDP broadcast with custom message format.
@@ -388,6 +461,8 @@ def send_udp_broadcast():
             # Handle the error as needed (e.g., retry, exit, etc.)
         # Wait for one second before sending the next broadcast
         time.sleep(1)
+
+
 def disconnect_clients():
     """
     Function to disconnect all connected clients after game has ended.
@@ -403,6 +478,8 @@ def disconnect_clients():
     CLIENTS.clear()
     # Clear the dictionary of client names
     CLIENT_NAMES.clear()
+
+
 def start_threads():
     # Start the TCP server in a separate thread
     TCP_THREAD = threading.Thread(target=tcp_connect_clients, args=())
@@ -411,6 +488,8 @@ def start_threads():
     # Start sending UDP broadcasts about the TCP server
     UDP_THREAD = threading.Thread(target=send_udp_broadcast, args=())
     UDP_THREAD.start()
+
+
 def tcp_setup():
     global IP_ADDRESS, TCP_PORT, TCP_SOCKET
     try:
@@ -434,6 +513,8 @@ def tcp_setup():
         colored_print("Error listening for incoming connections")
         exit()
     colored_print(f"TCP Server started, listening on IP address {IP_ADDRESS}, port {TCP_PORT}")
+
+
 def udp_setup():
     global UDP_SOCKET
     try:
@@ -448,8 +529,10 @@ def udp_setup():
     except Exception as e:
         colored_print(f"Error enabling broadcast for UDP socket: {e}")
         exit()
+
+
 def main():
-    global IP_ADDRESS, TCP_PORT, TCP_SOCKET, TCP_THREAD, UDP_THREAD,UDP_SOCKET, USER_DATA
+    global IP_ADDRESS, TCP_PORT, TCP_SOCKET, TCP_THREAD, UDP_THREAD, UDP_SOCKET, USER_DATA
     # Read past user data from CSV file
     read_from_csv()
     # Configuration
@@ -463,6 +546,7 @@ def main():
     udp_setup()
     # Start the TCP server connections and UDP broadcast threads
     start_threads()
+
 
 if __name__ == "__main__":
     main()
