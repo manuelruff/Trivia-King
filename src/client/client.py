@@ -1,8 +1,10 @@
+import signal
 import socket
 import threading
 import random
 import select
 import sys
+import os
 
 # Constants
 UDP_PORT = 13117
@@ -52,38 +54,10 @@ def login(conn):
     except Exception as e:
         colored_print(f"Error during login: {e}")
 
-# def handle_server_messages():
-#     global TCP_SOCKET  # Declare TCP_SOCKET as a global variable
-#     while True:
-#         try:
-#             hello_msg = TCP_SOCKET.recv(BUFFER_SIZE).decode("utf-8")
-#             msg = TCP_SOCKET.recv(BUFFER_SIZE).decode("utf-8")
-#             if not hello_msg:
-#                 colored_print("Server disconnected, listening for offer requests...")
-#                 TCP_SOCKET.close()
-#                 TCP_SOCKET = None  # Reset TCP_SOCKET to None
-#                 return
-#             colored_print(msg)
-#             # ans = input("Please enter your answer: ")
-#             # TCP_SOCKET.send(ans.encode())
-#             input_thread = threading.Thread(target=handle_user_input, args=(), daemon=True)
-#             input_thread.start()
-#             if "enough" in msg:
-#                 colored_print("Received 'enough' from the server. Stopping input.")
-#                 stop_input_event.set()  # Signal to stop user input after colored_printing the message
-#                 break  # Exit the loop after handling "enough"
-#             if "Congratulations to the winner:" in msg:
-#                 raise socket.error
-#         except socket.error:
-#             colored_print("Server disconnected, listening for offer requests...")
-#             TCP_SOCKET.close()
-#             TCP_SOCKET = None  # Reset TCP_SOCKET to None
-#             return
-
-# all the "private" handle messages
 def handle_enough():
     colored_print("Received 'enough' from the server. Stopping input.")
     stop_input_event.set()
+    os.kill(os.getpid(), signal.SIGINT)
     handle_question()
 def handle_winner():
     colored_print("Congratulations message received. Exiting.")
@@ -94,14 +68,13 @@ def get_user_input():
     # Read input non-blockingly
     while True:
         try:
-            ready, _, _ = select.select([sys.stdin], [], [], 10)  # Check if input is ready
-            if ready:
-                print("this is the ready input: ",ready)
-                colored_print("please enter your answer:\n")
-                USER_INPUT = sys.stdin.readline().strip()
-                stop_input_event.set()  # Signal to stop user input after colored_printing the message
-                #USER_INPUT = input("Please enter your answer: \n")
-                break
+        #ready, _, _ = select.select([sys.stdin], [], [], 10)  # Check if input is ready
+            # print("this is the ready input: ",ready)
+            colored_print("please enter your answer:\n")
+            USER_INPUT = input()
+            stop_input_event.set()  # Signal to stop user input after colored_printing the message
+            #USER_INPUT = input("Please enter your answer: \n")
+            break
         except:
             stop_input_event.set()  # Signal to stop user input after colored_printing the message
             USER_INPUT=""
@@ -149,7 +122,7 @@ def handle_server_messages():
             else:
                 colored_print(msg)
                 # if the message is the question
-                ans_thread = threading.Thread(target=handle_question(), args=())
+                ans_thread = threading.Thread(target=handle_question, args=())
                 ans_thread.start()
 
 
