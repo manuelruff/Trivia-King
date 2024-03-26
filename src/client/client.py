@@ -99,10 +99,13 @@ def get_user_input():
                 print("this is the ready input: ",ready)
                 colored_print("please enter your answer:\n")
                 USER_INPUT = sys.stdin.readline().strip()
+                stop_input_event.set()  # Signal to stop user input after colored_printing the message
                 #USER_INPUT = input("Please enter your answer: \n")
                 break
         except:
+            stop_input_event.set()  # Signal to stop user input after colored_printing the message
             USER_INPUT=""
+            break
 def handle_question():
     """Function to capture and send user input in a separate thread."""
     global TCP_SOCKET, USER_INPUT
@@ -116,9 +119,8 @@ def handle_question():
     user_input_thread.join()
 
     try:
-        # Check if user input is available and send it to the server
-        if USER_INPUT:
-            TCP_SOCKET.send(USER_INPUT.encode())
+        #send user input to the server
+        TCP_SOCKET.send(USER_INPUT.encode())
     except Exception as e:
         colored_print(f"Error sending input to server: {e}")
 def handle_server_messages():
