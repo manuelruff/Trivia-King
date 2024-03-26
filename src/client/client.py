@@ -152,9 +152,6 @@ def main():
         connect_to_server(server_ip, tcp_port)
         # Create and start thread for handling server messages
         handle_server_messages()
-        if ANS_THREAD is not None:
-            if ANS_THREAD.is_alive():
-                ANS_THREAD.join()
 
 
 if __name__ == "__main__":
