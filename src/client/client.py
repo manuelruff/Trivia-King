@@ -5,6 +5,7 @@ import random
 import select
 import sys
 import os
+import multiprocessing
 
 # Constants
 UDP_PORT = 13117
@@ -66,31 +67,25 @@ def get_user_input():
     global USER_INPUT
     # Read input non-blockingly
     while not stop_input_event.is_set():
-        try:
-            USER_INPUT = input()
-            stop_input_event.set()  # Signal to stop user input after colored_printing the message
+        USER_INPUT = sys.stdin.readline()
+        if USER_INPUT!="":
             return
-        except:
-            stop_input_event.set()  # Signal to stop user input after colored_printing the message
-            USER_INPUT=""
-            return
+    return
 def handle_question():
     """Function to capture and send user input in a separate thread."""
     global TCP_SOCKET, USER_INPUT
-    # clear stop input, we just started the question
-    stop_input_event.clear()
     colored_print("please enter your answer:\n")
     # Start the thread to get user input
     user_input_thread = threading.Thread(target=get_user_input)
     user_input_thread.start()
     # Wait until user input is received
-    user_input_thread.join()
-    try:
-        #send user input to the server
-        if(USER_INPUT!=""):
+    user_input_thread.join(10)
+    #send user input to the server
+    if(USER_INPUT!="" and not stop_input_event.is_set()):
+        try:
             TCP_SOCKET.send(USER_INPUT.encode())
-    except Exception as e:
-        colored_print(f"Error sending input to server: {e}")
+        except Exception as e:
+            colored_print(f"Error sending input to server: {e}")
 def handle_server_messages():
     global TCP_SOCKET,ANS_THREAD
     while True:
@@ -116,6 +111,8 @@ def handle_server_messages():
             else:
                 colored_print(msg)
                 # if the message is the question
+                # clear stop input, we just started the question
+                stop_input_event.clear()
                 ANS_THREAD = threading.Thread(target=handle_question, args=())
                 ANS_THREAD.start()
 
@@ -135,7 +132,8 @@ def main():
         # Create and start thread for handling server messages
         handle_server_messages()
         if ANS_THREAD is not None:
-            ANS_THREAD.join()
+            if ANS_THREAD.is_alive():
+                ANS_THREAD.join()
 
 
 if __name__ == "__main__":
