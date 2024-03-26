@@ -126,7 +126,6 @@ def handle_tcp_connection(client_socket, game_ready_event):
     colored_print(f"Client {CLIENT_NAMES[client_socket.getpeername()]} has joined the game")
     # Wait for the game to be ready
     game_ready_event.wait()
-
 def receive_answers_from_client(client_socket):
     client_socket.settimeout(10)  # Set a timeout of 10 seconds for receiving data
     try:
