@@ -65,7 +65,6 @@ def update_user_data(username):
         USER_DATA[username]["games_won"] += 1
     else:
         USER_DATA[username] = {"games_played": 1, "games_won": 1, "win_percentage": 100}  # Create new key if it doesn't exist
-
 # Function to calculate the percentage of games won for each user
 def calculate_win_percentage():
     global USER_DATA
@@ -74,7 +73,6 @@ def calculate_win_percentage():
         games_won = data["games_won"]
         win_percentage = (games_won / games_played) * 100 if games_played > 0 else 0
         USER_DATA[username]["win_percentage"] = win_percentage
-
 # Function to write user data to CSV file
 def write_user_data_to_csv():
     global USER_DATA
@@ -88,7 +86,6 @@ def write_user_data_to_csv():
                 writer.writerow([username, data["games_played"], data["games_won"], data["win_percentage"]])
     except FileNotFoundError:
         print("Error writing user data to CSV file.")
-
 def read_from_csv():
     global USER_DATA
     try:
@@ -106,7 +103,6 @@ def read_from_csv():
                 USER_DATA[username] = {"games_played": games_played, "games_won": games_won, "win_percentage": win_percentage}
     except FileNotFoundError:
         print("No leaderboard data available.")
-
 def get_leaderboard():
     leaderboard_string = ""
     try:
@@ -140,7 +136,6 @@ def get_leaderboard():
         leaderboard_string += "No leaderboard data available.\n"
 
     return leaderboard_string
-
 def update_csv_and_send_leaderboard(winner_name):
     update_user_data(winner_name)
     calculate_win_percentage()
@@ -155,15 +150,12 @@ def colored_print(text, color='\033[36m'):
 def find_free_port(start_port, max_attempts=100):
     """
     Function to find a free port within a specified range of attempts.
-
     Args:
         start_port (int): The starting port number to begin the search.
         max_attempts (int, optional): Maximum number of attempts to find a free port.
                                        Defaults to 100.
-
     Returns:
         int: The first free port found within the specified range.
-
     Raises:
         OSError: If no free port is found within the specified range of attempts.
     """
@@ -203,23 +195,31 @@ def create_random_question():
     rand_question = random.choice(all_questions)  # Choose a random question
     return (rand_question, QUESTIONS[rand_question])  # Return the chosen question and its answer
 def check_correct(client_ans, ans):
+    """
+    Function to check if the client's answer is correct.
+    :param client_ans:  client answer
+    :param ans: correct answer
+    :return:    True if the answer is correct, False otherwise
+    """
+    # Check if the answer is correct
     if ans:
-        if client_ans in ('t', '1', 'y'):
+        # Check if the client's answer is in the list of correct answers
+        if client_ans in ("TY1ty"):
             return True
         else:
             return False
+    # Check if the answer is incorrect
     else:
-        if client_ans in ('f', '0', 'n'):
+        # Check if the client's answer is in the list of incorrect answers
+        if client_ans in ("FN0fn"):
             return True
     return False
-def handle_tcp_connection(client_socket, game_ready_event):
+def handle_tcp_connection(client_socket):
     """
-    Function to handle TCP connections.
-
-    Args:
-        client_socket (socket.socket): The socket object representing the TCP connection.
-        game_ready_event (threading.Event): Event indicating if the game is ready to start.
+    Function to handle a TCP connection with a client.
+    :param client_socket:  client socket
     """
+    global GAME_READY_EVENT
     colored_print("Server started, listening on IP address {}")
     colored_print(f"TCP connection established with {client_socket.getpeername()}")
     # Add the client information to the list of connected clients
@@ -227,41 +227,58 @@ def handle_tcp_connection(client_socket, game_ready_event):
     CLIENT_NAMES[client_socket.getpeername()] = client_socket.recvfrom(1024)[0].decode()
     colored_print(f"Client {CLIENT_NAMES[client_socket.getpeername()]} has joined the game")
     # Wait for the game to be ready
-    game_ready_event.wait()
+    GAME_READY_EVENT.wait()
 def receive_answers_from_client(client_socket):
+    """
+    Function to receive answers from a client.
+    :param client_socket: client socket
+    :return: nothing
+    """
     client_socket.settimeout(10)  # Set a timeout of 10 seconds for receiving data
     try:
         # Wait for incoming data (answer) or timeout
         answer = client_socket.recv(1024).decode().strip()
+        # If an answer is received, put it in the answer queue
         if answer:
             ANSWER_QUEUE.put((client_socket.getpeername(), answer))
     except socket.timeout:
         # Timeout occurred
         try:
+            # Send a message to the client that the answer was not received in time, so we move on to next qeustion
             client_socket.send("enough".encode("utf-8"))
         except Exception as e:
             colored_print(f"Error sending message to {client_socket.getpeername()}: {e}")
         pass
     except Exception as e:
         return
-
 def send_message_to_clients(message,print_message=True):
+    """
+    Function to send a message to all connected clients.
+    :param message: message to print
+    :param print_message: if we want to print the message
+    """
+    # Send the message to all connected clients
     for client_socket, _ in CLIENTS:
         try:
             client_socket.send(message.encode('utf-8'))
         except Exception as e:
             colored_print(f"Error sending message to {client_socket.getpeername()}: {e}")
+    # Print the message if specified
     if print_message:
         colored_print(message)
 def send_start_game_message():
     message = f"Welcome to the {SERVER_NAME} server, where we are answering trivia questions\n"
     count = 1
+    # Send a welcome message to all clients
     for client in CLIENTS:
         message += f"Player {count}: {CLIENT_NAMES[client[1]]} \n"
         count += 1
     send_message_to_clients(message)
-
 def start_game():
+    """
+    Function to start the trivia game.
+    """
+    global GAME_READY_EVENT
     # Send a message to all clients that the game is starting
     send_start_game_message()
     # flag for finishing game
@@ -283,20 +300,25 @@ def start_game():
         client_count=len(CLIENTS)
         while time.time() - start_time < timeout:
             try:
+                # Get the client answer from the queue
                 client_answer = ANSWER_QUEUE.get(timeout=timeout)
+                # Check if the answer is correct
                 if check_correct(client_answer[1], answer):
+                    # we finish the game to the flag is up
                     game_finished = True
                     break
                 else:
+                    # we decrement the count of clients that sent an answer, when 0 we can continue to next question
                     client_count-=1
                 # all the clients sent a wring answare
                 if client_count==0:
                     break
+            # Handle the case when no answer is received within the timeout period
             except queue.Empty:
-                # No answer received within the timeout period
+                # No answer received within the timeout period, continue to the next question
                 colored_print("No correct answer received within the timeout period")
                 break
-    # Send the correct answer to everyone
+    # Send the correct answer and winner to everyone
     message1 = f"{CLIENT_NAMES[client_answer[0]]} is correct! {CLIENT_NAMES[client_answer[0]]} wins!\n"
     message2= f"Game over!\nCongratulations to the winner: {CLIENT_NAMES[client_answer[0]]}\n"
     send_message_to_clients(message1,False)
@@ -315,23 +337,24 @@ def client_connect():
     client_socket, client_address = TCP_SOCKET.accept()
     colored_print(f"New connection from {client_address}")
     # Start a new thread to handle the connection
-    threading.Thread(target=handle_tcp_connection, args=(client_socket, GAME_READY_EVENT)).start()
+    threading.Thread(target=handle_tcp_connection, args=(client_socket)).start()
 def tcp_connect_clients():
     """
     Function to start getting connections
-    Args:
-        game_ready_event (threading.Event): Event indicating if the game is ready to start.
     """
-    global TCP_SOCKET
+    global TCP_SOCKET, GAME_READY_EVENT
+    # we need to wait for at least one client to connect
     count_clients=0
+    # Wait for clients to connect
     while True:
         try:
             client_connect()
-            # Set the timeout for accepting new connections
+            # Set the timeout for accepting new connections,after each connection we will wait for 10 seconds
             TCP_SOCKET.settimeout(10)
+            # if a client connected we increment the count
             count_clients+=1
         except socket.timeout:
-            # if no clients connected we continue o wait
+            # if no clients connected we continue to wait for at least one client
             if count_clients==0:
                 continue
             # If at least one client has connected, break the loop and proceed with the game
@@ -341,21 +364,20 @@ def tcp_connect_clients():
     colored_print("Game ready!")
     # If no new clients joined during the last 10 seconds, start the game
     GAME_READY_EVENT.set()
-    # Once the game is ready, you can proceed with the game
     start_game()
 def send_udp_broadcast():
     """
     Function to send UDP broadcast with custom message format.
     """
+    global GAME_READY_EVENT
     # Define the message format
     magic_cookie = b'\xab\xcd\xdc\xba'
     message_type = b'\x02'
     server_name_bytes = SERVER_NAME.encode('utf-8').ljust(32, b'\x00')  # Change "KaKi" to your desired server name
     server_port_bytes = TCP_PORT.to_bytes(2, byteorder='big')
-
     # Construct the message
     message = magic_cookie + message_type + server_name_bytes + server_port_bytes
-
+    # Send the message every second until the game is ready
     while not GAME_READY_EVENT.is_set():
         try:
             # Send the message via UDP broadcast
@@ -368,8 +390,9 @@ def send_udp_broadcast():
         time.sleep(1)
 def disconnect_clients():
     """
-    Function to disconnect all connected clients.
+    Function to disconnect all connected clients after game has ended.
     """
+    # Close the client connections
     for client_socket, _ in CLIENTS:
         try:
             # Close the client socket
@@ -426,15 +449,14 @@ def udp_setup():
         colored_print(f"Error enabling broadcast for UDP socket: {e}")
         exit()
 def main():
-    global IP_ADDRESS, TCP_PORT, TCP_SOCKET, GAME_READY_EVENT, TCP_THREAD, UDP_THREAD,UDP_SOCKET, USER_DATA
-    # Read user data from CSV file
+    global IP_ADDRESS, TCP_PORT, TCP_SOCKET, TCP_THREAD, UDP_THREAD,UDP_SOCKET, USER_DATA
+    # Read past user data from CSV file
     read_from_csv()
     # Configuration
     IP_ADDRESS = get_local_ip()  # IP address to listen on
     if IP_ADDRESS is None:
         colored_print("Failed to retrieve local IP address. Please check your network connection.")
         exit()
-    # Create threading events
     # setup the TCP server
     tcp_setup()
     # setup the UDP server
