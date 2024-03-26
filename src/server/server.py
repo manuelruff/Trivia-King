@@ -89,7 +89,6 @@ def read_from_csv():
         with open("players_data.csv", mode='r') as file:
             reader = csv.reader(file)
             leaderboard = list(reader)
-
             # Populate USER_DATA dictionary
             for i,row in enumerate(leaderboard):
                 if(i==0):
