@@ -81,14 +81,7 @@ def write_user_data_to_csv():
             for username, data in sorted_user_data:
                 writer.writerow([username, data["games_played"], data["games_won"], data["win_percentage"]])
     except FileNotFoundError:
-        # If the file doesn't exist, create a new one
-        create_csv_file()
-
-# Function to create a new CSV file
-def create_csv_file():
-    with open(CSV_FILE, mode='w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(["Username", "Games Played", "Games Won", "Win Percentage"])
+        print("Error writing user data to CSV file.")
 
 def print_leaderboard():
     try:
