@@ -56,7 +56,7 @@ def login(conn):
         colored_print(f"Error during login: {e}")
 
 def handle_enough():
-    colored_print("Received 'enough' from the server. Stopping input.")
+    # colored_print("Received 'enough' from the server. Stopping input.")
     stop_input_event.set()
     #ANS_THREAD.terminate()
     # handle_question()
@@ -67,23 +67,25 @@ def get_user_input():
     """Function to get user input in a separate thread."""
     global USER_INPUT
     # Read input non-blockingly
-    while True:
+    while not stop_input_event.is_set():
         try:
         #ready, _, _ = select.select([sys.stdin], [], [], 10)  # Check if input is ready
             # print("this is the ready input: ",ready)
-            colored_print("please enter your answer:\n")
+            #colored_print("please enter your answer:\n")
             USER_INPUT = input()
             stop_input_event.set()  # Signal to stop user input after colored_printing the message
             #USER_INPUT = input("Please enter your answer: \n")
-            break
+            return
         except:
             stop_input_event.set()  # Signal to stop user input after colored_printing the message
             USER_INPUT=""
-            break
+            return
 def handle_question():
     """Function to capture and send user input in a separate thread."""
     global TCP_SOCKET, USER_INPUT
-
+    # clear stop input, we just started the question
+    stop_input_event.clear()
+    colored_print("please enter your answer:\n")
     # Start the thread to get user input
     user_input_thread = threading.Thread(target=get_user_input)
     user_input_thread.start()
@@ -91,7 +93,6 @@ def handle_question():
     # Wait for the stop signal or until user input is received
     stop_input_event.wait()
     user_input_thread.join()
-
     try:
         #send user input to the server
         TCP_SOCKET.send(USER_INPUT.encode())
@@ -113,7 +114,7 @@ def handle_server_messages():
                 colored_print(msg)
                 continue
             elif "enough" in msg:
-                colored_print(msg)
+                # colored_print(msg)
                 handle_enough()
                 continue
             elif "Congratulations to the winner:" in msg:
@@ -136,11 +137,14 @@ def handle_server_messages():
             return
 
 def main():
+    global ANS_THREAD
     while True:
         server_ip, tcp_port = listen_for_offers()
         connect_to_server(server_ip, tcp_port)
         # Create and start thread for handling server messages
         handle_server_messages()
+        if ANS_THREAD is not None:
+            ANS_THREAD.join()
 
 
 if __name__ == "__main__":
