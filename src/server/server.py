@@ -83,6 +83,22 @@ def write_user_data_to_csv():
     except FileNotFoundError:
         print("Error writing user data to CSV file.")
 
+def read_from_csv():
+    try:
+        with open("players_data.csv", mode='r') as file:
+            reader = csv.reader(file)
+            leaderboard = list(reader)
+
+            # Populate USER_DATA dictionary
+            for row in leaderboard:
+                username = row[0]
+                games_played = int(row[1])
+                games_won = int(row[2])
+                win_percentage = float(row[3])
+                USER_DATA[username] = {"games_played": games_played, "games_won": games_won, "win_percentage": win_percentage}
+    except FileNotFoundError:
+        print("No leaderboard data available.")
+
 def print_leaderboard():
     try:
         with open("players_data.csv", mode='r') as file:
