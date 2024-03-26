@@ -54,14 +54,11 @@ CSV_FILE = "players_data.csv"
 USER_DATA = {}
 #function to collect data
 # Function to update user data dictionary
-def update_user_data(username, won):
+def update_user_data(username):
     global USER_DATA
-    if username in USER_DATA:
-        USER_DATA[username]["games_played"] += 1
-        if won:
-            USER_DATA[username]["games_won"] += 1
-    else:
-        USER_DATA[username] = {"games_played": 1, "games_won": int(won)}
+    for name in CLIENT_NAMES.keys():
+        USER_DATA[name]["games_played"] += 1
+    USER_DATA[username]["games_won"] += 1
 
 # Function to calculate the percentage of games won for each user
 def calculate_win_percentage():
@@ -103,15 +100,16 @@ def read_from_csv():
     except FileNotFoundError:
         print("No leaderboard data available.")
 
-def print_leaderboard():
+def get_leaderboard():
+    leaderboard_string = ""
     try:
         with open("players_data.csv", mode='r') as file:
             reader = csv.reader(file)
             leaderboard = list(reader)
 
-            # Print the top 3 entries of the leaderboard
-            print("Leaderboard:")
-            print("{:<5} {:<20} {:<15} {:<15} {:<15}".format("Place", "Username", "Games Played", "Games Won", "Win Percentage"))
+            # Prepare the leaderboard string
+            leaderboard_string += "Leaderboard:\n"
+            leaderboard_string += "{:<5} {:<20} {:<15} {:<15} {:<15}\n".format("Place", "Username", "Games Played", "Games Won", "Win Percentage")
             for i, row in enumerate(leaderboard[:3], start=1):
                 place = str(i) + "."
                 username = row[0]
@@ -129,12 +127,19 @@ def print_leaderboard():
                 else:
                     color = "\033[0m"  # White
 
-                print(f"{color}{place:<5} {username:<20} {games_played:<15} {games_won:<15} {win_percentage:<15}\033[0m")
+                leaderboard_string += f"{color}{place:<5} {username:<20} {games_played:<15} {games_won:<15} {win_percentage:<15}\033[0m\n"
     except FileNotFoundError:
-        print("No leaderboard data available.")
+        leaderboard_string += "No leaderboard data available.\n"
+
+    return leaderboard_string
 
 def update_csv_and_send_leaderboard(winner_name):
-    print("yalla")
+    update_user_data(winner_name)
+    calculate_win_percentage()
+    leaderboard_string = get_leaderboard()
+    send_message_to_clients(leaderboard_string)
+    # Write updated user data to CSV file
+    write_user_data_to_csv()
 ######################################################
 
 def colored_print(text, color='\033[36m'):
