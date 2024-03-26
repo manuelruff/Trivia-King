@@ -10,11 +10,21 @@ BUFFER_SIZE = 1024
 TCP_SOCKET = None
 stop_input_event = threading.Event()
 NAMES = ["Luffy", "Zoro", "Nami", "Usopp", "Sanji", "Chopper", "Robin", "Franky", "Brook", "Monica", "Ross", "Rachel", "Chandler", "Joey", "Phoebe"]
+COLORS = ['\033[92m', '\033[94m', '\033[95m', '\033[96m', '\033[32m', '\033[34m', '\033[35m', '\033[36m', '\033[92m',
+          '\033[94m', '\033[95m', '\033[96m']
 USER_INPUT=""
 ANS_THREAD= None
 CLIENT_NAME = None
-def colored_print(text, color='\033[92m'):
-    print(color + text + '\033[0m')
+CLIENT_COLOR = None
+
+
+def colored_print(text):
+    global CLIENT_COLOR
+    if CLIENT_COLOR is None:
+        CLIENT_COLOR = random.choice(COLORS)
+        print(CLIENT_COLOR + text + '\033[0m')
+    else:
+        print(CLIENT_COLOR + text + '\033[0m')
 def listen_for_offers():
     colored_print("Client started, listening for offer requests...")
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp_socket:
@@ -144,7 +154,7 @@ def main():
         connect_to_server(server_ip, tcp_port)
         # Create and start thread for handling server messages
         handle_server_messages()
-        if (ANS_THREAD is not None):
+        if ANS_THREAD is not None:
             if ANS_THREAD.is_alive():
                 ANS_THREAD.join()
 
