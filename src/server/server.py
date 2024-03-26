@@ -177,7 +177,7 @@ def update_csv_and_send_leaderboard(winner_name):
     update_user_data(winner_name)
     calculate_win_percentage()
     leaderboard_string = get_leaderboard()
-    send_message_to_clients(leaderboard_string)
+    send_message_to_clients(leaderboard_string,False)
     # Write updated user data to CSV file
     write_user_data_to_csv()
 ######################################################

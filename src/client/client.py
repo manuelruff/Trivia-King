@@ -51,7 +51,7 @@ def listen_for_offers():
         # Continuously listen for offer requests
         while True:
             # Print a message indicating that the server successfully bound to UDP
-            colored_print("Server successfully bound to UDP")
+            # colored_print("Server successfully bound to UDP")
 
             # Receive data and address from the socket
             data, addr = udp_socket.recvfrom(BUFFER_SIZE)
@@ -90,7 +90,7 @@ def connect_to_server(server_ip, tcp_port):
     TCP_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         # Print a message indicating the attempt to connect to the server
-        colored_print(f"Connecting to the server {server_ip} on port {tcp_port}")
+        #colored_print(f"Connecting to the server {server_ip} on port {tcp_port}")
 
         # Connect to the server using the provided IP address and TCP port
         TCP_SOCKET.connect((server_ip, tcp_port))
@@ -102,7 +102,7 @@ def connect_to_server(server_ip, tcp_port):
         login(TCP_SOCKET)
 
         # Print a message indicating successful login name sent to the server
-        colored_print("Successful login name sent to server")
+        #colored_print("Successful login name sent to server")
     except socket.error as e:
         # Print an error message if connection to the server fails
         colored_print(f"Error connecting to the server: {e}")
@@ -123,7 +123,7 @@ def login(conn):
             CLIENT_NAME = random.choice(NAMES)
 
             # Print the selected client name
-            colored_print(f"******************** name: {CLIENT_NAME} ********************")
+            colored_print(f"******************** Name: {CLIENT_NAME} ********************")
 
             # Send the client name to the server
             conn.send(CLIENT_NAME.encode())
@@ -161,6 +161,8 @@ def handle_server_messages():
                 colored_print(msg)
             elif "Congratulations to the winner:" in msg:
                 colored_print(msg)
+            elif "Leaderboard:" in msg:
+                print(msg)
                 handle_winner()
             # handle questions
             else:
