@@ -268,6 +268,14 @@ def handle_tcp_connection(client_socket,game_ready_event):
     except socket.error as e:
         colored_print(f"Socket error occurred: {e}")
         # Handle the socket error as needed
+
+def handle_client_disconnection(client_socket):
+    #remove the client from the list of connected clients
+    CLIENTS.remove((client_socket, client_socket.getpeername()))
+    colored_print(f"Client {CLIENT_NAMES[client_socket.getpeername()]} has disconnected")
+    # remove the client name from the dictionary
+    del CLIENT_NAMES[client_socket.getpeername()]
+
 def receive_answers_from_client(client_socket):
     """
     Function to receive answers from a client.
@@ -287,6 +295,7 @@ def receive_answers_from_client(client_socket):
             # Send a message to the client that the answer was not received in time, so we move on to next qeustion
             client_socket.send("enough".encode("utf-8"))
         except Exception as e:
+
             colored_print(f"Error sending message to {client_socket.getpeername()}: {e}")
         pass
     except Exception as e:
@@ -302,6 +311,7 @@ def send_message_to_clients(message, print_message=True):
         try:
             client_socket.send(message.encode('utf-8'))
         except Exception as e:
+            handle_client_disconnection(client_socket)
             colored_print(f"Error sending message to {client_socket.getpeername()}: {e}")
     # Print the message if specified
     if print_message:
@@ -324,7 +334,7 @@ def start_game():
     # flag for finishing game
     game_finished = False
     # Now we need to start sending questions
-    while not game_finished:
+    while not game_finished and len(CLIENTS)>0:
         question, answer = create_random_question()
         # Send the question to everyone
         send_message_to_clients(question)
@@ -358,16 +368,21 @@ def start_game():
                 # No answer received within the timeout period, continue to the next question
                 colored_print("No correct answer received within the timeout period")
                 break
-    # Send the correct answer and winner to everyone
-    message1 = f"{CLIENT_NAMES[client_answer[0]]} is correct! {CLIENT_NAMES[client_answer[0]]} wins!\n"
-    message2 = f"Game over!\nCongratulations to the winner: {CLIENT_NAMES[client_answer[0]]}\n"
-    send_message_to_clients(message1, False)
-    send_message_to_clients(message2, False)
-    colored_print("Game over,sending out offer requests...")
-    # update the csv file and send the leaderboard, also print the leaderboard and send it to the clients
-    update_csv_and_send_leaderboard(CLIENT_NAMES[client_answer[0]])
-    # disconnecting all clients
-    disconnect_clients()
+    # If no clients are connected, print a message
+    if(len(CLIENTS)==0):
+        colored_print("No clients are still connected")
+    # If the game is finished and there are still clients we will send them the proper message
+    else:
+        # Send the correct answer and winner to everyone
+        message1 = f"{CLIENT_NAMES[client_answer[0]]} is correct! {CLIENT_NAMES[client_answer[0]]} wins!\n"
+        message2 = f"Game over!\nCongratulations to the winner: {CLIENT_NAMES[client_answer[0]]}\n"
+        send_message_to_clients(message1, False)
+        send_message_to_clients(message2, False)
+        colored_print("Game over,sending out offer requests...")
+        # update the csv file and send the leaderboard, also print the leaderboard and send it to the clients
+        update_csv_and_send_leaderboard(CLIENT_NAMES[client_answer[0]])
+        # disconnecting all clients
+        disconnect_clients()
     # finish the game
     GAME_READY_EVENT.clear()
     # send udp broadcast again
