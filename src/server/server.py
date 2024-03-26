@@ -364,7 +364,7 @@ def start_game():
     send_message_to_clients(message1, False)
     send_message_to_clients(message2, False)
     colored_print("Game over,sending out offer requests...")
-    # update the csv file
+    # update the csv file and send the leaderboard, also print the leaderboard and send it to the clients
     update_csv_and_send_leaderboard(CLIENT_NAMES[client_answer[0]])
     # disconnecting all clients
     disconnect_clients()
