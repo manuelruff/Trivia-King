@@ -94,9 +94,12 @@ def get_user_input():
     # Read input non-blockingly
     while True:
         try:
-            ready, _, _ = select.select([sys.stdin], [], [], 0.1)  # Check if input is ready
+            ready, _, _ = select.select([sys.stdin], [], [], 10)  # Check if input is ready
             if ready:
-                USER_INPUT = input("Please enter your answer: \n")
+                print("this is the ready input: ",ready)
+                colored_print("please enter your answer:\n")
+                USER_INPUT = sys.stdin.readline().strip()
+                #USER_INPUT = input("Please enter your answer: \n")
                 break
         except:
             USER_INPUT=""
