@@ -17,7 +17,6 @@ ANS_THREAD= None
 CLIENT_NAME = None
 CLIENT_COLOR = None
 
-
 def colored_print(text):
     global CLIENT_COLOR
     if CLIENT_COLOR is None:
@@ -69,32 +68,12 @@ def handle_enough():
 def handle_winner():
     # colored_print("Congratulations message received. Exiting.")
     raise socket.error  # Or handle the winning case as needed
-# def get_user_input():
-#     """Function to get user input in a separate thread."""
-#     global USER_INPUT
-#     # Read input non-blockingly
-#     while not stop_input_event.is_set():
-#         USER_INPUT = input()
-#         if USER_INPUT!="":
-#             return
-#     return
 def handle_question():
     """Function to capture and send user input in a separate thread."""
     global TCP_SOCKET, USER_INPUT
     colored_print("please enter your answer:\n")
-    # Start the thread to get user input
-    # user_input_thread = threading.Thread(target=get_user_input)
-    # user_input_thread.start()
-    # Wait until user input is received
-    # user_input_thread.join(10)
     keyboard.wait(10)
     stop_input_event.set()
-    #send user input to the server
-    # if(USER_INPUT!="" and not stop_input_event.is_set()):
-    #     try:
-    #         TCP_SOCKET.send(USER_INPUT.encode())
-    #     except Exception as e:
-    #         colored_print(f"Error sending input to server: {e}")
 def handle_server_messages():
     global TCP_SOCKET,ANS_THREAD,GAME_WON
     while True:
@@ -131,8 +110,6 @@ def handle_server_messages():
             TCP_SOCKET.close()
             TCP_SOCKET = None
             return
-
-
 def on_key_event(event):
     if stop_input_event.is_set():
         return
@@ -141,7 +118,6 @@ def on_key_event(event):
         stop_input_event.set()
     except Exception as e:
         colored_print(f"Error sending input to server: {e}")
-
 def main():
     global ANS_THREAD
     # Register the callback function for key events
