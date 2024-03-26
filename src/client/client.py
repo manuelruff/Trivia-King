@@ -58,7 +58,7 @@ def login(conn):
     if CLIENT_NAME is None:
         try:
             CLIENT_NAME = random.choice(NAMES)
-            colored_print(f"name: {CLIENT_NAME}")
+            colored_print(f"******************** name: {CLIENT_NAME} ********************")
             conn.send(CLIENT_NAME.encode())
         except Exception as e:
             colored_print(f"Error during login: {e}")
