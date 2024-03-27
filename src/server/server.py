@@ -289,6 +289,8 @@ def receive_answers_from_client(client_socket):
     :param client_socket: client socket
     :return: nothing
     """
+    # we dont want to delete mid run so we save the ones that gave us problem and delete after that
+    problematic_clients = []
     client_socket.settimeout(10)  # Set a timeout of 10 seconds for receiving data
     try:
         # Wait for incoming data (answer) or timeout
@@ -302,25 +304,34 @@ def receive_answers_from_client(client_socket):
             # Send a message to the client that the answer was not received in time, so we move on to next qeustion
             client_socket.send("enough".encode("utf-8"))
         except Exception as e:
-            handle_client_disconnection(client_socket)
+            # we save the problematic client so we can delete it later
+            problematic_clients.append(client_socket)
             # colored_print(f"Error sending message to {client_socket.getpeername()}: {e}")
         pass
     except Exception as e:
         return
+    # now we delete the problematic clients
+    for problematic_client in problematic_clients:
+        handle_client_disconnection(problematic_client)
 def send_message_to_clients(message, print_message=True):
     """
     Function to send a message to all connected clients.
     :param message: message to print
     :param print_message: if we want to print the message
     """
+    # we dont want to delete mid run so we save the ones that gave us problem and delete after that
+    problematic_clients = []
     # Send the message to all connected clients
     for client_socket, _ in CLIENTS:
         try:
             client_socket.send(message.encode('utf-8'))
         except Exception as e:
-            handle_client_disconnection(client_socket)
+            # we save the problematic client so we can delete it later
+            problematic_clients.append(client_socket)
             # colored_print(f"Error sending message to {client_socket.getpeername()}: {e}")
-
+    # now we delete the problematic clients
+    for problematic_client in problematic_clients:
+        handle_client_disconnection(problematic_client)
     # Print the message if specified
     if print_message:
         colored_print(message)
@@ -407,9 +418,8 @@ def start_game():
     game_finished = False
     # Now we need to start sending questions
     while not game_finished and len(CLIENTS)>0:
-        #
+        # get random question
         question, answer = create_random_question()
-
         # Send the question to everyone
         send_message_to_clients(question)
         # We will empty the queue
