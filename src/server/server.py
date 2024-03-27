@@ -270,12 +270,19 @@ def handle_tcp_connection(client_socket,game_ready_event):
         # Handle the socket error as needed
 
 def handle_client_disconnection(client_socket):
+    """
+    when i fali tp
+    @param client_socket:
+    """
     #remove the client from the list of connected clients
-    CLIENTS.remove((client_socket, client_socket.getpeername()))
-    colored_print(f"Client {CLIENT_NAMES[client_socket.getpeername()]} has disconnected")
-    # remove the client name from the dictionary
-    del CLIENT_NAMES[client_socket.getpeername()]
-
+    try:
+        CLIENTS.remove((client_socket, client_socket.getpeername()))
+        colored_print(f"Client {CLIENT_NAMES[client_socket.getpeername()]} has disconnected")
+        # remove the client name from the dictionary
+        del CLIENT_NAMES[client_socket.getpeername()]
+    except Exception as e:
+        colored_print(f"Error handling client disconnection: {e}")
+        pass
 def receive_answers_from_client(client_socket):
     """
     Function to receive answers from a client.
@@ -295,8 +302,8 @@ def receive_answers_from_client(client_socket):
             # Send a message to the client that the answer was not received in time, so we move on to next qeustion
             client_socket.send("enough".encode("utf-8"))
         except Exception as e:
-
-            colored_print(f"Error sending message to {client_socket.getpeername()}: {e}")
+            handle_client_disconnection(client_socket)
+            # colored_print(f"Error sending message to {client_socket.getpeername()}: {e}")
         pass
     except Exception as e:
         return
@@ -312,7 +319,8 @@ def send_message_to_clients(message, print_message=True):
             client_socket.send(message.encode('utf-8'))
         except Exception as e:
             handle_client_disconnection(client_socket)
-            colored_print(f"Error sending message to {client_socket.getpeername()}: {e}")
+            # colored_print(f"Error sending message to {client_socket.getpeername()}: {e}")
+
     # Print the message if specified
     if print_message:
         colored_print(message)
@@ -324,7 +332,7 @@ def send_start_game_message():
         message += f"Player {count}: {CLIENT_NAMES[client[1]]} \n"
         count += 1
     send_message_to_clients(message)
-def start_game():
+def start_game1():
     """
     Function to start the trivia game.
     """
@@ -334,7 +342,8 @@ def start_game():
     # flag for finishing game
     game_finished = False
     # Now we need to start sending questions
-    while not game_finished and len(CLIENTS)>0:
+    while not game_finished :
+        #
         question, answer = create_random_question()
         # Send the question to everyone
         send_message_to_clients(question)
@@ -360,7 +369,72 @@ def start_game():
                 else:
                     # we decrement the count of clients that sent an answer, when 0 we can continue to next question
                     client_count -= 1
-                # all the clients sent a wring answare
+                # all the clients sent a wrong answare
+                if client_count == 0:
+                    break
+            # Handle the case when no answer is received within the timeout period
+            except queue.Empty:
+                # No answer received within the timeout period, continue to the next question
+                colored_print("No correct answer received within the timeout period")
+                break
+    # If no clients are connected, print a message
+    # if(len(CLIENTS)==0):
+    #     colored_print("No clients are still connected")
+    # If the game is finished and there are still clients we will send them the proper message
+    # else:
+    # Send the correct answer and winner to everyone
+    message1 = f"{CLIENT_NAMES[client_answer[0]]} is correct! {CLIENT_NAMES[client_answer[0]]} wins!\n"
+    message2 = f"Game over!\nCongratulations to the winner: {CLIENT_NAMES[client_answer[0]]}\n"
+    send_message_to_clients(message1, False)
+    send_message_to_clients(message2, False)
+    colored_print("Game over,sending out offer requests...")
+    # update the csv file and send the leaderboard, also print the leaderboard and send it to the clients
+    update_csv_and_send_leaderboard(CLIENT_NAMES[client_answer[0]])
+    # disconnecting all clients
+    disconnect_clients()
+    # finish the game
+    GAME_READY_EVENT.clear()
+    # send udp broadcast again
+    start_threads()
+def start_game():
+    """
+    Function to start the trivia game.
+    """
+    global GAME_READY_EVENT
+    # Send a message to all clients that the game is starting
+    send_start_game_message()
+    # flag for finishing game
+    game_finished = False
+    # Now we need to start sending questions
+    while not game_finished and len(CLIENTS)>0:
+        #
+        question, answer = create_random_question()
+
+        # Send the question to everyone
+        send_message_to_clients(question)
+        # We will empty the queue
+        ANSWER_QUEUE.empty()
+        # We will start a thread for each client to receive the answer
+        for client in CLIENTS:
+            threading.Thread(target=receive_answers_from_client, args=(client[0],)).start()
+        # Wait for a correct answer
+        timeout = 10  # Timeout in seconds
+        start_time = time.time()
+        # we check how manyt clients sent an answare and stop when they all sent it
+        client_count = len(CLIENTS)
+        while time.time() - start_time < timeout:
+            try:
+                # Get the client answer from the queue
+                client_answer = ANSWER_QUEUE.get(timeout=timeout)
+                # Check if the answer is correct
+                if check_correct(client_answer[1], answer):
+                    # we finish the game to the flag is up
+                    game_finished = True
+                    break
+                else:
+                    # we decrement the count of clients that sent an answer, when 0 we can continue to next question
+                    client_count -= 1
+                # all the clients sent a wrong answare
                 if client_count == 0:
                     break
             # Handle the case when no answer is received within the timeout period
@@ -371,6 +445,7 @@ def start_game():
     # If no clients are connected, print a message
     if(len(CLIENTS)==0):
         colored_print("No clients are still connected")
+        colored_print("Game over,sending out offer requests...")
     # If the game is finished and there are still clients we will send them the proper message
     else:
         # Send the correct answer and winner to everyone
@@ -381,10 +456,12 @@ def start_game():
         colored_print("Game over,sending out offer requests...")
         # update the csv file and send the leaderboard, also print the leaderboard and send it to the clients
         update_csv_and_send_leaderboard(CLIENT_NAMES[client_answer[0]])
-        # disconnecting all clients
-        disconnect_clients()
+    # disconnecting all clients
+    disconnect_clients()
     # finish the game
     GAME_READY_EVENT.clear()
+    # idk why it works this way, without sleep the threads have problems in reconnecting
+    time.sleep(3)
     # send udp broadcast again
     start_threads()
 def client_connect():
