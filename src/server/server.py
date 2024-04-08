@@ -268,7 +268,6 @@ def handle_tcp_connection(client_socket,game_ready_event):
     except socket.error as e:
         colored_print(f"Socket error occurred: {e}")
         # Handle the socket error as needed
-
 def handle_client_disconnection(client_socket):
     """
     when i fali tp
@@ -336,6 +335,9 @@ def send_message_to_clients(message, print_message=True):
     if print_message:
         colored_print(message)
 def send_start_game_message():
+    """
+    Function to send a message to all connected clients that the game is starting.
+    """
     message = f"Welcome to the {SERVER_NAME} server, where we are answering trivia questions\n"
     count = 1
     # Send a welcome message to all clients
@@ -475,6 +477,9 @@ def start_game():
     # send udp broadcast again
     start_threads()
 def client_connect():
+    """
+    Function to start the accept incoming connections from clients thread.
+    """
     # Accept incoming connection
     client_socket, client_address = TCP_SOCKET.accept()
     colored_print(f"New connection from {client_address}")
@@ -546,6 +551,9 @@ def disconnect_clients():
     # Clear the dictionary of client names
     CLIENT_NAMES.clear()
 def start_threads():
+    """
+    Function to start the TCP server and UDP broadcast threads.
+    """
     # Start the TCP server in a separate thread
     TCP_THREAD = threading.Thread(target=tcp_connect_clients, args=())
     TCP_THREAD.start()
@@ -554,6 +562,9 @@ def start_threads():
     UDP_THREAD = threading.Thread(target=send_udp_broadcast, args=())
     UDP_THREAD.start()
 def tcp_setup():
+    """
+    Function to setup the TCP server.
+    """
     global IP_ADDRESS, TCP_PORT, TCP_SOCKET
     try:
         # Find a free port for TCP server
@@ -577,6 +588,9 @@ def tcp_setup():
         exit()
     colored_print(f"TCP Server started, listening on IP address {IP_ADDRESS}, port {TCP_PORT}")
 def udp_setup():
+    """
+    Function to setup the UDP server.
+    """
     global UDP_SOCKET
     try:
         # Create a UDP socket
@@ -591,6 +605,9 @@ def udp_setup():
         colored_print(f"Error enabling broadcast for UDP socket: {e}")
         exit()
 def main():
+    """
+    Main function to run the TCP and UDP servers.
+    """
     global IP_ADDRESS, TCP_PORT, TCP_SOCKET, TCP_THREAD, UDP_THREAD, UDP_SOCKET, USER_DATA
     # Read past user data from CSV file
     read_from_csv()
