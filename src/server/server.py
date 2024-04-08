@@ -205,6 +205,7 @@ def find_free_port(start_port, max_attempts=4000):
                 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Allow address reuse
                 s.bind(("132.73.198.242", port))  # Explicitly bind to the IP address
                 return port
+        #     if error go try next port
         except OSError as e:
             continue
     raise OSError("Unable to find a free port")
