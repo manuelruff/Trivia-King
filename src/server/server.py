@@ -174,6 +174,10 @@ def get_leaderboard():
     return leaderboard_string
 # the function that responsible to call all the CSV necessary functions
 def update_csv_and_send_leaderboard(winner_name):
+    """
+    This function updates the user data for the winner of the game, calculates the win percentage
+    :param winner_name:
+    """
     update_user_data(winner_name)
     calculate_win_percentage()
     leaderboard_string = get_leaderboard()
