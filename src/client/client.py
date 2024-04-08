@@ -19,13 +19,16 @@ CLIENT_COLOR = None
 
 
 def colored_print(text):
+    """
+    This function prints the provided text in a random color from the COLORS list.
+    :param text:
+    """
     global CLIENT_COLOR
     if CLIENT_COLOR is None:
         CLIENT_COLOR = random.choice(COLORS)
         print(CLIENT_COLOR + text + '\033[0m')
     else:
         print(CLIENT_COLOR + text + '\033[0m')
-
 
 def listen_for_offers():
     """
@@ -182,15 +185,24 @@ def handle_server_messages():
 
 
 def handle_enough():
+    """
+    This function is called whenever the server indicates that enough answers have been received.
+    """
     stop_input_event.set()
 
 
 def handle_winner():
+    """
+    This function is called whenever a winner is announced by the server.
+    """
     # colored_print("Congratulations message received. Exiting.")
     raise socket.error  # Or handle the winning case as needed
 
 
 def handle_question():
+    """
+    This function is called whenever a question is received from the server. It
+    """
     # the function handle with questions it gets from the server
     global TCP_SOCKET, USER_INPUT
     colored_print("please enter your answer:\n")
@@ -200,6 +212,10 @@ def handle_question():
 
 # the function that responsible for the client answer typing
 def on_key_event(event):
+    """
+    This function is called whenever a key is pressed. It sends the key to the server.
+    :param event: the evernt that happens
+    """
     if stop_input_event.is_set():
         return
     try:
@@ -210,6 +226,9 @@ def on_key_event(event):
 
 
 def main():
+    """
+    The main function of the client program. It listens for offer requests from game servers,
+    """
     global ANS_THREAD
     # Register the callback function for key events
     keyboard.on_press(on_key_event)
