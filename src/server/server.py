@@ -187,7 +187,7 @@ def update_csv_and_send_leaderboard(winner_name):
 ######################################################
 def colored_print(text, color='\033[36m'):
     print(color + text + '\033[0m')
-def find_free_port(start_port, max_attempts=100):
+def find_free_port(start_port, max_attempts=4000):
     """
     Function to find a free port within a specified range of attempts.
     Args:
@@ -203,14 +203,13 @@ def find_free_port(start_port, max_attempts=100):
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Allow address reuse
-                s.bind(("", port))
+                s.bind(("132.73.198.242", port))  # Explicitly bind to the IP address
                 return port
         except OSError as e:
-            if "address already in use" in str(e):  # Specific error for address in use
-                continue  # Try next port
-            else:
-                raise  # Raise other OSError exceptions
+            continue
     raise OSError("Unable to find a free port")
+
+
 def get_local_ip():
     """
     Get the local IP address of the computer.
