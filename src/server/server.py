@@ -201,13 +201,15 @@ def find_free_port(start_port, max_attempts=100):
     """
     for port in range(start_port, start_port + max_attempts):
         try:
-            # Attempt to bind to the current port
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Allow address reuse
                 s.bind(("", port))
-                return port  # Return the port if binding is successful
-        except OSError:
-            pass
-    # If no free port is found within the specified range of attempts, raise an OSError
+                return port
+        except OSError as e:
+            if "address already in use" in str(e):  # Specific error for address in use
+                continue  # Try next port
+            else:
+                raise  # Raise other OSError exceptions
     raise OSError("Unable to find a free port")
 def get_local_ip():
     """
