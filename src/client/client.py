@@ -9,7 +9,8 @@ BUFFER_SIZE = 1024
 TCP_SOCKET = None
 stop_input_event = threading.Event()
 NAMES = ["Luffy", "Zoro", "Nami", "Usopp", "Sanji", "Chopper", "Robin", "Franky", "Brook", "Monica", "Ross", "Rachel",
-         "Chandler", "Joey", "Phoebe"]
+         "Chandler", "Joey", "Phoebe", "Yossi", "Gal", "Omri", "Manuel", "Sydney", "Sweeney",
+         "Goku", "Vegeta", "Piccolo", "Gohan", "Krillin", "Trunks", "Goten", "Bulma", "Chi-Chi", "Frieza"]
 COLORS = ['\033[92m', '\033[94m', '\033[95m', '\033[96m', '\033[32m', '\033[34m', '\033[35m', '\033[36m', '\033[92m',
           '\033[94m', '\033[95m', '\033[96m']
 USER_INPUT = ""
